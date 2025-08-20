@@ -29,7 +29,7 @@ const CrearPerfilSocio = () => {
     setError('');
     try {
       await axios.post(
-        'https://tzmmkhjx-8000.brs.devtunnels.ms/api/sellers/crear-perfil/',
+        'https://intishopback.onrender.com/api/sellers/crear-perfil/',
         perfil,
         {
           headers: {

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api/";
+const BASE = import.meta.env.VITE_API_URL || "https://intishopback.onrender.com/api/";
 
 // Endpoints backend recomendados (DRF):
 // - GET/POST   /api/sellers/admin/socios/

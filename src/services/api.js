@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api/', // cambiar por el de producción
+  baseURL: 'https://intishopback.onrender.com/api/', // cambiar por el de producción
 });
 
 api.interceptors.request.use(config => {

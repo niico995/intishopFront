@@ -11,7 +11,7 @@ export default function DetallePagos() {
   useEffect(() => {
     const fetchDetalle = async () => {
       try {
-        const res = await axios.get(`http://localhost:8000/api/admin/pagos/socio/${id}/`, {
+        const res = await axios.get(`https://intishopback.onrender.com/api/admin/pagos/socio/${id}/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setPagos(res.data);

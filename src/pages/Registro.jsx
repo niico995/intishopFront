@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/';
+const API = import.meta.env.VITE_API_URL || 'https://intishopback.onrender.com/api/';
 
 const Registro = () => {
   const { pathname, search } = useLocation();

@@ -5,7 +5,7 @@ export const obtenerCreditos = async () => {
 
   try {
     const response = await axios.get(
-      'http://localhost:8000/api/gocuotas/ver-creditos/',
+      'https://intishopback.onrender.com/api/gocuotas/ver-creditos/',
       {
         headers: {
           Authorization: `Bearer ${token}`,

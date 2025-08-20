@@ -51,7 +51,7 @@ const MiPerfilSocio = () => {
     setError('');
     try {
       await axios.put(
-        'https://tzmmkhjx-8000.brs.devtunnels.ms/api/sellers/mi-perfil/',
+        'https://intishopback.onrender.com/api/sellers/mi-perfil/',
         perfil,
         {
           headers: {
