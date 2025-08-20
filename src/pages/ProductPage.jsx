@@ -1,121 +1,70 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import axiosPublic from '../api/axiosPublic';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import 'swiper/css';
-import { Helmet } from 'react-helmet-async';
+// src/pages/ProductoDetalle.jsx
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import axios from "../api/axiosConfig";
+import { useCart } from "../components/CartContext";
 
-const currency = (v) =>
-  Number(v).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 });
-
-export default function ProductPage() {
+export default function ProductoDetalle() {
   const { id } = useParams();
-  const [producto, setProducto] = useState(null);
-  const [error, setError] = useState('');
+  const [p, setP] = useState(null);
+  const [qty, setQty] = useState(1);
+  const { add } = useCart();
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await axiosPublic.get(`products/tienda/producto/${id}/`);
-        setProducto(res.data);
-      } catch (e) {
-        setError('No se pudo cargar el producto');
-      }
-    };
-    load();
+    axios.get(`products/tienda/producto/${id}/`).then(r => setP(r.data)).catch(() => setP(null));
   }, [id]);
 
-  if (error) return <div className="p-6 text-red-600">{error}</div>;
-  if (!producto) return <div className="p-6">Cargando producto…</div>;
+  if (!p) return <div className="max-w-6xl mx-auto p-4">Cargando…</div>;
 
-  const imgs = Array.isArray(producto.imagenes) ? producto.imagenes : [];
-  const cuota = Number(producto.precio || 0) / 4;
+  const precio = Number(p.precio);
+  const cuotas4 = (precio / 4).toFixed(2);
+  const primary = p.imagenes?.find(i => i.is_primary)?.url || p.imagenes?.[0]?.url;
 
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: producto.nombre,
-    description: producto.descripcion,
-    offers: {
-      '@type': 'Offer',
-      priceCurrency: 'ARS',
-      price: String(producto.precio || 0),
-      availability: (producto.stock > 0) ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-    },
-    image: imgs.map(i => i.url),
-    sku: String(producto.id),
-    brand: producto.seller_nombre || 'Vendedor',
+  const addToCart = () => {
+    const item = {
+      id: p.id,
+      nombre: p.nombre,
+      precio,
+      seller_id: p.seller_id,
+      seller_nombre: p.seller_nombre,
+      img: primary,
+    };
+    add(item, qty);
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-4">
-      <Helmet>
-        <title>{producto.nombre} | SantiagoShop</title>
-        <meta name="description" content={producto.descripcion?.slice(0, 160)} />
-        <link rel="canonical" href={`${window.location.origin}/producto/${producto.id}`} />
-        <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
-      </Helmet>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* carrusel */}
-        <div className="w-full">
-          <Swiper spaceBetween={10} slidesPerView={1} className="w-full h-80 rounded overflow-hidden">
-            {imgs.length ? imgs.map(img => (
-              <SwiperSlide key={img.id}>
-                <img
-                  src={img.url}
-                  alt={producto.nombre}
-                  className="w-full h-80 object-cover"
-                  loading="lazy"
-                  draggable={false}
-                />
-              </SwiperSlide>
-            )) : (
-              <SwiperSlide>
-                <div className="w-full h-80 flex items-center justify-center bg-gray-100 text-gray-400">
-                  Sin imágenes
-                </div>
-              </SwiperSlide>
-            )}
-          </Swiper>
+    <div className="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-3">
+          {primary ? <img src={primary} alt={p.nombre} className="w-full h-full object-cover" /> : null}
         </div>
+        {/* miniaturas */}
+        <div className="flex gap-2">
+          {p.imagenes?.map(i => (
+            <img key={i.id} src={i.url} alt="" className="w-16 h-16 object-cover rounded-md border" />
+          ))}
+        </div>
+      </div>
 
-        {/* info */}
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold mb-2">{producto.nombre}</h1>
-          <div className="text-gray-600 mb-4">
-            {producto.categorias?.length ? (
-              <span>Categorías: {producto.categorias.join(', ')}</span>
-            ) : null}
-          </div>
+      <div>
+        <h1 className="text-2xl font-semibold">{p.nombre}</h1>
+        <div className="text-sm text-gray-500 mb-2">{p.seller_nombre}</div>
+        <div className="text-3xl font-bold">AR$ {precio.toLocaleString("es-AR")}</div>
+        <div className="text-sm text-gray-500">en 4 cuotas de AR$ {Number(cuotas4).toLocaleString("es-AR")}</div>
+        <div className="mt-2 text-sm">Stock: {p.stock}</div>
+        <p className="mt-4 text-gray-700 whitespace-pre-line">{p.descripcion}</p>
 
-          <div className="flex items-baseline gap-3 mb-3">
-            <div className="text-3xl font-bold">{currency(producto.precio)}</div>
-            <div className="text-gray-600">4 cuotas de {currency(cuota)}</div>
-          </div>
-
-          <div className="mb-3">
-            <span className={`px-2 py-1 rounded text-sm ${producto.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-              {producto.stock > 0 ? `Stock: ${producto.stock}` : 'Sin stock'}
-            </span>
-          </div>
-
-          <p className="whitespace-pre-wrap text-gray-800 mb-4">
-            {producto.descripcion}
-          </p>
-
-          {producto.seller_id && (
-            <div className="mb-6">
-              <span className="text-gray-600 mr-2">Vendido por</span>
-              <Link to={`/vendedor/${producto.seller_id}`} className="text-blue-600 hover:underline">
-                {producto.seller_nombre || 'Vendedor'}
-              </Link>
-            </div>
-          )}
-
-          {/* placeholder para botón carrito (lo mejoramos luego) */}
-          <button className="bg-blue-600 text-white px-4 py-2 rounded">
-            Añadir al carrito
+        <div className="mt-6 flex items-center gap-3">
+          <input
+            type="number"
+            min={1}
+            max={p.stock || undefined}
+            value={qty}
+            onChange={(e) => setQty(Math.max(1, Number(e.target.value)))}
+            className="w-20 border rounded-md px-3 py-2"
+          />
+          <button onClick={addToCart} className="px-4 py-2 rounded-md bg-black text-white">
+            Agregar al carrito
           </button>
         </div>
       </div>

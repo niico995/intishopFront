@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ListadoProductosVenta from './ListadoProductosVenta';// Asegurate de que esta ruta esté bien
-import MiniCarrito from './MiniCarrito'; // Asegurate de que esta ruta esté bien también
+import MiniCarrito from './Carrito'; // Asegurate de que esta ruta esté bien también
 
 const Tienda = () => {
   const [carrito, setCarrito] = useState([]);
