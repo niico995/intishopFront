@@ -184,11 +184,11 @@
 // }
 // src/pages/login/login.jsx
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate,useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Mail, Lock, ShieldCheck, ArrowRight, Eye, EyeOff, RefreshCw, Store, UserCog } from "lucide-react";
 import api from "../../services/api";
-
+import axiosInstance from "../../api/axiosConfig";
 // ==== helpers ====
 function decodeJwt(token) {
   try {
