@@ -58,7 +58,7 @@ function PublicLayout() {
 
 function App() {
   return (
-    <AuthProvider>
+     <AuthProvider>
       <CartProvider>
         <Router>
           <Routes>
@@ -76,7 +76,7 @@ function App() {
               {/* Carrito */}
               <Route path="/carrito" element={<Carrito />} />
 
-              {/* Perfil público (placeholder por ahora) */}
+              {/* Perfil público (placeholder) */}
               <Route
                 path="/perfil"
                 element={<div className="max-w-6xl mx-auto p-4">Perfil del usuario (luego lo armamos)</div>}
@@ -90,7 +90,7 @@ function App() {
               <Route path="/registro/admin" element={<Registro />} />
               <Route path="/registro/socio" element={<Registro />} />
 
-              {/* Cliente (si querés sin Navbar, los sacamos de este layout) */}
+              {/* Cliente */}
               <Route path="/cliente/perfil" element={<CargarPerfilCliente />} />
               <Route path="/dashboard-cliente" element={<DashboardCliente />} />
             </Route>
@@ -116,9 +116,14 @@ function App() {
             </Route>
 
             {/* ========= SOCIO (sin Navbar) ========= */}
+            {/* 1) crear-perfil FUERA del guard */}
+            <Route path="/socio" element={<SocioLayout />}>
+              <Route path="crear-perfil" element={<CrearPerfilSocio />} />
+            </Route>
+
+            {/* 2) Resto de rutas PROTEGIDAS por el guard */}
             <Route path="/socio" element={<VerificarPerfilSocio />}>
               <Route element={<SocioLayout />}>
-                <Route path="crear-perfil" element={<CrearPerfilSocio />} />
                 <Route path="perfil" element={<MiPerfilSocio />} />
                 <Route path="perfil-ver" element={<PerfilSocio />} />
                 <Route path="pagos" element={<PagosSocio />} />
@@ -126,7 +131,6 @@ function App() {
                 <Route path="productos/cargar" element={<CargarProducto />} />
                 <Route path="productos/editar/:id" element={<EditarProducto />} />
                 <Route path="banners" element={<BannersSocio />} />
-                {/* Catch-all para rutas inválidas dentro de socio */}
                 <Route path="*" element={<Navigate to="/socio/productos" replace />} />
               </Route>
             </Route>
