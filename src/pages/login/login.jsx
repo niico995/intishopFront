@@ -190,197 +190,155 @@ import { Mail, Lock, ShieldCheck, ArrowRight, Eye, EyeOff, RefreshCw, Store, Use
 import api from "../../services/api";
 
 // ==== helpers ====
-const decodeJWT = (raw) => {
+function decodeJwt(token) {
   try {
-    if (!raw) return null;
-    const [, payload] = String(raw).split(".");
-    if (!payload) return null;
-    const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const json = atob(b64 + "=".repeat((4 - (b64.length % 4)) % 4));
-    return JSON.parse(json);
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    // atob + decodeURIComponent para caracteres unicode
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
   } catch {
-    return null;
+    return {};
   }
-};
+}
 
 export default function Login() {
-  const nav = useNavigate();
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPwd, setShowPwd] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const from = location.state?.from || "/";
+
+  const onChange = (e) => {
+    const { name, value } = e.target;
+    setForm((p) => ({ ...p, [name]: value }));
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setErr("");
+    setErrorMsg("");
     setLoading(true);
+
     try {
-      // 🔁 Ahora usamos /api/login/ (tu vista custom que devuelve { access, refresh? })
-      const res = await api.post("/login/", { email, password });
-      const access = res.data?.access || res.data?.token;
-      const refresh = res.data?.refresh;
-      if (!access) throw new Error("Token no recibido");
+      const { data } = await axiosInstance.post("login/", {
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+      });
 
-      // guardar tokens (para el interceptor de refresh)
+      const { access, refresh } = data || {};
+      if (!access) {
+        throw new Error("No se recibió el token de acceso.");
+      }
+
+      // Guardar tokens (compat con el resto del código)
       localStorage.setItem("token", access);
+      localStorage.setItem("access", access);
       if (refresh) localStorage.setItem("refresh", refresh);
-      api.defaults.headers.common.Authorization = `Bearer ${access}`;
 
-      // rol desde /users/me/ o desde JWT como fallback
-      let role = "cliente";
-      try {
-        const me = await api.get("/users/me/");
-        role = me.data?.role || role;
-      } catch {
-        const payload = decodeJWT(access) || {};
-        if (payload.is_staff || payload.is_superuser || payload.role === "admin") role = "admin";
+      // Decodificar claims para rutear
+      const payload = decodeJwt(access);
+      const role = payload.role || "cliente";
+      const isAdmin = !!payload.is_admin || !!payload.is_staff || !!payload.is_superuser;
+      const hasSellerProfile = !!payload.has_seller_profile;
+
+      // 🎯 Redirecciones
+      if (isAdmin || role === "admin") {
+        navigate("/admin", { replace: true });
+        return;
       }
 
-      if (role === "admin") return nav("/admin", { replace: true });
-
-      if (role === "socio" || role === "vendedor") {
-        try {
-          await api.get("/sellers/mi-perfil/"); // 200 = tiene perfil
-          return nav("/socio/dashboard", { replace: true });
-        } catch (e2) {
-          if (e2?.response?.status === 404) return nav("/socio/crear-perfil", { replace: true });
-          return nav("/login", { replace: true });
-        }
+      if (role === "socio" || role === "seller" || role === "vendedor") {
+        navigate(hasSellerProfile ? "/socio/productos" : "/socio/crear-perfil", { replace: true });
+        return;
       }
 
-      return nav("/dashboard-cliente", { replace: true });
-    } catch (e2) {
-      console.error(e2);
-      setErr("Email o contraseña inválidos.");
+      // Cliente por defecto
+      navigate("/dashboard-cliente", { replace: true });
+    } catch (err) {
+      console.error("Error de login:", err);
+      const apiMsg =
+        err?.response?.data?.detail ||
+        err?.response?.data?.error ||
+        "Email o contraseña incorrectos.";
+      setErrorMsg(apiMsg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50 via-white to-white">
-      {/* glows decorativos */}
-      <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-indigo-200/40 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-fuchsia-200/40 blur-3xl" />
+    <div className="min-h-[70vh] flex items-center justify-center p-4">
+      <form
+        onSubmit={onSubmit}
+        className="w-full max-w-md bg-white shadow-lg rounded-2xl p-6 space-y-4"
+      >
+        <h1 className="text-2xl font-bold text-center">Iniciar sesión</h1>
 
-      <div className="mx-auto max-w-md px-4 py-16 relative">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-          className="text-center mb-8"
-        >
-          <div className="inline-flex items-center gap-2 rounded-2xl border bg-white/70 backdrop-blur px-4 py-2 shadow-sm">
-            <Store className="h-5 w-5 text-slate-900" />
-            <span className="text-sm font-semibold text-slate-900">SantiagoShop</span>
+        {errorMsg && (
+          <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">
+            {errorMsg}
           </div>
-          <h1 className="mt-4 text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-indigo-700">
-            Iniciá sesión
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">Accedé a tu panel de cliente, socio o admin.</p>
-        </motion.div>
+        )}
 
-        {/* Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.05 }}
-          className="rounded-2xl border bg-white/80 backdrop-blur p-6 shadow-lg"
+        <div className="space-y-1">
+          <label htmlFor="email" className="text-sm font-medium">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            className="w-full border rounded-lg px-3 py-2 outline-none focus:ring focus:ring-black/10"
+            placeholder="tu@email.com"
+            value={form.email}
+            onChange={onChange}
+            required
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label htmlFor="password" className="text-sm font-medium">
+            Contraseña
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            className="w-full border rounded-lg px-3 py-2 outline-none focus:ring focus:ring-black/10"
+            placeholder="••••••••"
+            value={form.password}
+            onChange={onChange}
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-xl py-2 font-semibold border hover:bg-black hover:text-white transition disabled:opacity-60"
         >
-          {/* Mensajes */}
-          {err && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {err}
-            </div>
-          )}
+          {loading ? "Ingresando..." : "Ingresar"}
+        </button>
 
-          {/* Form */}
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="w-full rounded-xl border border-slate-200 bg-white px-9 py-2 outline-none ring-indigo-200/60 focus:ring-2"
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-              <input
-                id="password"
-                type={showPwd ? "text" : "password"}
-                autoComplete="current-password"
-                required
-                className="w-full rounded-xl border border-slate-200 bg-white px-9 py-2 pr-10 outline-none ring-indigo-200/60 focus:ring-2"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPwd((v) => !v)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-500 hover:text-slate-700"
-                aria-label={showPwd ? "Ocultar contraseña" : "Mostrar contraseña"}
-                tabIndex={-1}
-              >
-                {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between text-sm">
-              <label className="inline-flex items-center gap-2">
-                <input type="checkbox" className="rounded" disabled={loading} />
-                Recordarme
-              </label>
-              <Link to="/recuperar" className="text-slate-700 hover:underline">
-                ¿Olvidaste tu contraseña?
-              </Link>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 bg-slate-900 text-white rounded-xl py-2.5 hover:opacity-95 disabled:opacity-60"
-            >
-              {loading ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin" /> Ingresando…
-                </>
-              ) : (
-                <>
-                  <ArrowRight className="h-4 w-4" /> Ingresar
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div className="my-6 h-px bg-gray-100" />
-
-          <div className="text-center text-sm text-gray-600">
-            ¿No tenés cuenta?
-            <div className="mt-2 flex items-center justify-center gap-3">
-              <Link to="/registro/cliente" className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 hover:bg-slate-50">
-                <ShieldCheck className="h-4 w-4" /> Registrar cliente
-              </Link>
-              <Link to="/registro/socio" className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 hover:bg-slate-50">
-                <UserCog className="h-4 w-4" /> Registrar socio
-              </Link>
-            </div>
-          </div>
-        </motion.div>
-      </div>
+        <div className="text-center text-sm">
+          <Link to="/registro/cliente" className="underline">
+            Crear cuenta
+          </Link>
+          <span className="mx-2">·</span>
+          <Link to="/recuperar-password" className="underline">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
+      </form>
     </div>
   );
 }
