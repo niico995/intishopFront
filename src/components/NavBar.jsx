@@ -202,7 +202,7 @@ export default function NavBar() {
 
         {/* Logo */}
         <Link to="/" className="text-2xl font-bold" onClick={() => { setOpenSug(false); closeAllMobile(); }}>
-          SantiagoShop
+          IntiShop
         </Link>
 
         {/* Categorías (desktop) */}

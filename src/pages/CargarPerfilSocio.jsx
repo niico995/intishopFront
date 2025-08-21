@@ -21,7 +21,7 @@ const MiPerfilSocio = () => {
     const fetchPerfil = async () => {
       try {
         const res = await axios.get(
-          'http://localhost:8000/api/sellers/mi-perfil/',
+          'https://intishopback.onrender.com/api/sellers/mi-perfil/',
           {
             headers: {
               Authorization: `Bearer ${token}`
