@@ -217,12 +217,13 @@ export default function Login() {
     setErr("");
     setLoading(true);
     try {
-      // SimpleJWT: POST /api/token/ -> { access, refresh }
-      const res = await api.post("/token/", { email, password });
-      const access = res.data?.access;
+      // 🔁 Ahora usamos /api/login/ (tu vista custom que devuelve { access, refresh? })
+      const res = await api.post("/login/", { email, password });
+      const access = res.data?.access || res.data?.token;
       const refresh = res.data?.refresh;
       if (!access) throw new Error("Token no recibido");
 
+      // guardar tokens (para el interceptor de refresh)
       localStorage.setItem("token", access);
       if (refresh) localStorage.setItem("refresh", refresh);
       api.defaults.headers.common.Authorization = `Bearer ${access}`;

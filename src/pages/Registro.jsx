@@ -243,14 +243,12 @@ const decodeJWT = (raw) => {
     return null;
   }
 };
-
 const niceRole = (r) => (r ? r.charAt(0).toUpperCase() + r.slice(1) : "");
 
 export default function Registro() {
   const { pathname, search } = useLocation();
   const navigate = useNavigate();
 
-  // role por ruta
   const role = useMemo(() => {
     if (pathname.includes("cliente")) return "cliente";
     if (pathname.includes("socio")) return "socio";
@@ -287,8 +285,7 @@ export default function Registro() {
   const validarEmail = (email) => /\S+@\S+\.\S+/.test(email);
 
   const enviarCodigo = async () => {
-    setMensaje("");
-    setError("");
+    setMensaje(""); setError("");
     if (!role) return setError("Ruta inválida");
     if (!form.email || !validarEmail(form.email)) return setError("Ingresá un email válido");
     if (role === "admin" && !form.token) return setError("Ingresá el token de Admin");
@@ -311,8 +308,7 @@ export default function Registro() {
 
   const verificarYRegistrar = async (e) => {
     e.preventDefault();
-    setMensaje("");
-    setError("");
+    setMensaje(""); setError("");
 
     if (!role) return setError("Ruta inválida");
     if (!form.email || !validarEmail(form.email)) return setError("Ingresá un email válido");
@@ -322,13 +318,16 @@ export default function Registro() {
     setSubmitting(true);
     try {
       // 1) Verificar y registrar
-      await api.post(`/users/verificar-registro/`, { email: form.email, password: form.password, code: form.codigo, role });
+      await api.post(`/users/verificar-registro/`, {
+        email: form.email, password: form.password, code: form.codigo, role
+      });
 
-      // 2) Login automático (SimpleJWT)
-      const loginRes = await api.post(`/token/`, { email: form.email, password: form.password });
-      const access = loginRes.data?.access;
+      // 2) Login automático -> ahora /api/login/
+      const loginRes = await api.post(`/login/`, { email: form.email, password: form.password });
+      const access = loginRes.data?.access || loginRes.data?.token;
       const refresh = loginRes.data?.refresh;
       if (!access) throw new Error("No se recibió el token de acceso");
+
       localStorage.setItem("token", access);
       if (refresh) localStorage.setItem("refresh", refresh);
       api.defaults.headers.common.Authorization = `Bearer ${access}`;
@@ -343,12 +342,12 @@ export default function Registro() {
         if (payloadJwt.is_staff || payloadJwt.is_superuser || payloadJwt.role === "admin") userRole = "admin";
       }
 
-      // 4) Redirecciones según rol y perfil de socio
+      // 4) Redirecciones
       if (userRole === "admin") return navigate("/admin", { replace: true });
 
       if (userRole === "socio" || userRole === "vendedor") {
         try {
-          await api.get(`/sellers/mi-perfil/`);
+          await api.get(`/sellers/mi-perfil/`); // 200 → tiene perfil
           return navigate("/socio/dashboard", { replace: true });
         } catch (e2) {
           if (e2.response?.status === 404) return navigate("/socio/crear-perfil", { replace: true });
@@ -376,7 +375,7 @@ export default function Registro() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50 via-white to-white">
-      {/* Glow decorativo */}
+      {/* Glows */}
       <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-indigo-200/40 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-fuchsia-200/40 blur-3xl" />
 
@@ -409,23 +408,19 @@ export default function Registro() {
           <div className="mb-5 grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-sm">
             <button
               onClick={() => setFase("verificacion")}
-              className={`py-2 rounded-lg transition ${
-                fase === "verificacion" ? "bg-white shadow font-semibold" : "text-slate-600"
-              }`}
+              className={`py-2 rounded-lg transition ${fase === "verificacion" ? "bg-white shadow font-semibold" : "text-slate-600"}`}
             >
               Verificación
             </button>
             <button
               onClick={() => setFase("registro")}
-              className={`py-2 rounded-lg transition ${
-                fase === "registro" ? "bg-white shadow font-semibold" : "text-slate-600"
-              }`}
+              className={`py-2 rounded-lg transition ${fase === "registro" ? "bg-white shadow font-semibold" : "text-slate-600"}`}
             >
               Registro
             </button>
           </div>
 
-          {/* Mensajes */}
+          {/* mensajes */}
           {mensaje && (
             <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
               {mensaje}
@@ -477,9 +472,7 @@ export default function Registro() {
                       <RefreshCw className="h-4 w-4 animate-spin" /> Enviando
                     </>
                   ) : reintentarEn > 0 ? (
-                    <>
-                      <RefreshCw className="h-4 w-4" /> Reenviar en {reintentarEn}s
-                    </>
+                    <>Reenviar en {reintentarEn}s</>
                   ) : (
                     <>
                       <ArrowRight className="h-4 w-4" /> Enviar código
@@ -559,7 +552,7 @@ export default function Registro() {
                     </>
                   ) : (
                     <>
-                      <ShieldCheck className="h-4 w-4" /> Registrar y entrar
+                      <CheckCircle2 className="h-4 w-4" /> Registrar y entrar
                     </>
                   )}
                 </button>
