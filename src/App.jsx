@@ -33,6 +33,7 @@ import AdminGuard from "./components/AdminGuard";
 import AdminSociosList from "./pages/admin/AdminSocioList";
 import AdminSocioDetail from "./pages/admin/AdminSocioDetail";
 import AdminSocioForm from "./pages/admin/AdminSocioForm";
+import AdminHomeBanners from "./pages/admin/AdminHomeBanners";
 
 // Socio
 import SocioLayout from "./pages/SocioLayout";
@@ -113,6 +114,7 @@ function App() {
               <Route path="socios/nuevo" element={<AdminSocioForm />} />
               <Route path="socios/:id" element={<AdminSocioDetail />} />
               <Route path="pagos/socio/:id" element={<DetallePagos />} />
+              <Route path="banners-home" element={<AdminHomeBanners />} />
             </Route>
 
             {/* ========= SOCIO (sin Navbar) ========= */}

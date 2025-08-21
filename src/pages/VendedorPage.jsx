@@ -73,37 +73,57 @@ export default function VendedorPage() {
       </div>
 
       {/* Banners o fallback */}
-      {hasBanners ? (
-        <div className="mb-6 sm:mb-8">
-          <Swiper
-            modules={[Autoplay]}
-            spaceBetween={10}
-            slidesPerView={1}
-            autoplay={useAutoplay ? { delay: 3500, disableOnInteraction: false } : false}
-            className="w-full rounded overflow-hidden"
-          >
-            {seller.banners.map((b, i) => (
-              <SwiperSlide key={i}>
-                <div className="w-full h-40 sm:h-56 lg:h-72 bg-gray-100">
-                  <img
-                    src={b.url || b}
-                    alt={`banner-${i}`}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-              </SwiperSlide>
-            ))}
-          </Swiper>
-        </div>
-      ) : (
-        <div className="mb-6 sm:mb-8 rounded-lg bg-gradient-to-r from-blue-600 to-blue-400 text-white p-6 sm:p-10">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold">
-            {seller.nombre_fantasia || seller.nombre || 'Vendedor'}
-          </h2>
-          {seller.bio && <p className="mt-2 text-white/90 max-w-2xl">{seller.bio}</p>}
-        </div>
-      )}
+{hasBanners ? (
+  <div className="mb-6 sm:mb-8">
+    <Swiper
+      modules={[Autoplay]}
+      spaceBetween={10}
+      slidesPerView={1}
+      autoplay={useAutoplay ? { delay: 3500, disableOnInteraction: false } : false}
+      className="w-full rounded-xl overflow-hidden"
+    >
+      {seller.banners.map((b, i) => {
+        const url = b.url || b;
+        const link = b.link || null;
+        const title = b.titulo || seller.nombre_fantasia || seller.nombre || `Banner ${i + 1}`;
+        const content = (
+          <picture>
+            {/* si viene webp, los navegadores lo usan; sino cae al <img> */}
+            <source srcSet={url} type="image/webp" />
+            <img
+              src={url}
+              alt={title}
+              className="w-full h-full object-cover"
+              loading={i === 0 ? "eager" : "lazy"}
+              decoding="async"
+              sizes="(min-width:1024px) 960px, 100vw"
+            />
+          </picture>
+        );
+        return (
+          <SwiperSlide key={b.id || i}>
+            <div className="w-full aspect-[3/1] bg-gray-100">
+              {link ? (
+                <a href={link} target="_blank" rel="noopener noreferrer" aria-label={title}>
+                  {content}
+                </a>
+              ) : (
+                content
+              )}
+            </div>
+          </SwiperSlide>
+        );
+      })}
+    </Swiper>
+  </div>
+) : (
+  <div className="mb-6 sm:mb-8 rounded-lg bg-gradient-to-r from-blue-600 to-blue-400 text-white p-6 sm:p-10">
+    <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold">
+      {seller.nombre_fantasia || seller.nombre || 'Vendedor'}
+    </h2>
+    {seller.bio && <p className="mt-2 text-white/90 max-w-2xl">{seller.bio}</p>}
+  </div>
+)}
 
       {/* Productos del vendedor */}
       <div className="flex items-center justify-between mb-3 sm:mb-4">
