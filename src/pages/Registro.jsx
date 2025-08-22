@@ -224,11 +224,18 @@
 
 // export default Registro;
 // src/pages/registro/Registro.jsx
+// src/pages/Registro.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Lock, KeyRound, ShieldCheck, RefreshCw, ArrowRight, UserPlus } from "lucide-react";
-import api from "../services/api";
+import {
+  Mail, Lock, KeyRound, ShieldCheck, RefreshCw, ArrowRight, UserPlus,
+  CheckCircle2, // 👈 faltaba este
+} from "lucide-react";
+
+// 👇 clientes HTTP
+import apiAuth from "../api/axiosConfig";   // con Authorization (interceptor)
+import axiosPublic from "../api/axiosPublic"; // sin Authorization
 
 // ===== Helpers =====
 const decodeJWT = (raw) => {
@@ -295,7 +302,8 @@ export default function Registro() {
     try {
       const url = `/users/register/${role}/`;
       const payload = role === "admin" ? { email: form.email, token: form.token } : { email: form.email };
-      await api.post(url, payload);
+      // 👇 público (sin Authorization) para evitar 401 por token viejo
+      await axiosPublic.post(url, payload);
       setMensaje("Código enviado a tu email ✉️");
     } catch (e) {
       setReintentarEn(0);
@@ -317,25 +325,26 @@ export default function Registro() {
 
     setSubmitting(true);
     try {
-      // 1) Verificar y registrar
-      await api.post(`/users/verificar-registro/`, {
+      // 1) Verificar y registrar (público)
+      await axiosPublic.post(`/users/verificar-registro/`, {
         email: form.email, password: form.password, code: form.codigo, role
       });
 
-      // 2) Login automático -> ahora /api/login/
-      const loginRes = await api.post(`/login/`, { email: form.email, password: form.password });
+      // 2) Login automático (público)
+      const loginRes = await axiosPublic.post(`/login/`, { email: form.email, password: form.password });
       const access = loginRes.data?.access || loginRes.data?.token;
       const refresh = loginRes.data?.refresh;
       if (!access) throw new Error("No se recibió el token de acceso");
 
+      // Guardar tokens y setear Authorization en el cliente con auth
       localStorage.setItem("token", access);
       if (refresh) localStorage.setItem("refresh", refresh);
-      api.defaults.headers.common.Authorization = `Bearer ${access}`;
+      apiAuth.defaults.headers.common.Authorization = `Bearer ${access}`;
 
-      // 3) Detectar rol real
+      // 3) Detectar rol real (intenta /users/me/; si falla usa JWT)
       let userRole = role;
       try {
-        const me = await api.get(`/users/me/`);
+        const me = await apiAuth.get(`/users/me/`);
         userRole = me.data?.role || userRole;
       } catch {
         const payloadJwt = decodeJWT(access) || {};
@@ -347,7 +356,7 @@ export default function Registro() {
 
       if (userRole === "socio" || userRole === "vendedor") {
         try {
-          await api.get(`/sellers/mi-perfil/`); // 200 → tiene perfil
+          await apiAuth.get(`/sellers/mi-perfil/`); // 200 → tiene perfil
           return navigate("/socio/dashboard", { replace: true });
         } catch (e2) {
           if (e2.response?.status === 404) return navigate("/socio/crear-perfil", { replace: true });

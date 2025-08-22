@@ -72,9 +72,11 @@
 //   );
 // }
 // src/pages/ProductoDetalle.jsx
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import axios from "../api/axiosConfig";
+// ⬇️ opcional: si querés evitar mandar Authorization a un endpoint público
+// import axios from "../api/axiosPublic";
+import axios from "../api/axiosPublic";
 import { useCart } from "../components/CartContext";
 
 const fmtARS = (v) =>
@@ -85,14 +87,14 @@ export default function ProductoDetalle() {
   const [p, setP] = useState(null);
   const [error, setError] = useState("");
   const [qty, setQty] = useState(1);
-  const [selIdx, setSelIdx] = useState(0);
+  const [selIdx, setSelIdx] = useState(null); // 👈 arranca sin selección
   const { add } = useCart();
 
   useEffect(() => {
     let cancel = false;
     setError("");
     setP(null);
-    setSelIdx(0);
+    setSelIdx(null); // 👈 resetea selección al cambiar de producto
 
     axios
       .get(`products/tienda/producto/${id}/`)
@@ -100,7 +102,7 @@ export default function ProductoDetalle() {
         if (cancel) return;
         setP(r.data);
       })
-      .catch((e) => {
+      .catch(() => {
         if (cancel) return;
         setError("No pudimos cargar el producto.");
       });
@@ -111,12 +113,13 @@ export default function ProductoDetalle() {
   }, [id]);
 
   const imagenes = p?.imagenes || [];
-  const primary = useMemo(() => {
+
+  // 👇 lógica corregida: si el usuario eligió miniatura, manda esa; si no, primaria; si no, la primera
+  const activeUrl = useMemo(() => {
     if (!imagenes.length) return null;
-    // si hay marcada primaria, úsala; si no, la seleccionada; si no, la primera
+    if (selIdx !== null && imagenes[selIdx]) return imagenes[selIdx].url;
     const prim = imagenes.find((i) => i.is_primary);
-    if (prim) return prim.url;
-    return imagenes[selIdx]?.url || imagenes[0].url;
+    return prim?.url || imagenes[0].url;
   }, [imagenes, selIdx]);
 
   if (error) return <div className="max-w-6xl mx-auto p-4">{error}</div>;
@@ -140,19 +143,23 @@ export default function ProductoDetalle() {
       precio,
       seller_id: p.seller_id,
       seller_nombre: p.seller_nombre,
-      img: primary || undefined,
+      img: activeUrl || undefined,
     };
     add(item, qty);
   };
+
+  // helper para resaltar miniatura activa
+  const isThumbActive = (idx, img) =>
+    selIdx !== null ? idx === selIdx : !!img.is_primary || idx === 0;
 
   return (
     <div className="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Galería */}
       <div>
         <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-3">
-          {primary ? (
+          {activeUrl ? (
             <img
-              src={primary}
+              src={activeUrl}
               alt={p.nombre}
               className="w-full h-full object-cover"
               loading="eager"
@@ -164,18 +171,19 @@ export default function ProductoDetalle() {
         {/* Miniaturas */}
         {imagenes.length > 1 && (
           <div className="flex gap-2 flex-wrap">
-            {imagenes.map((i, idx) => (
+            {imagenes.map((img, idx) => (
               <button
-                key={i.id || idx}
+                key={img.id || idx}
                 type="button"
                 onClick={() => setSelIdx(idx)}
                 className={`w-16 h-16 rounded-md border overflow-hidden ${
-                  idx === selIdx ? "ring-2 ring-black" : ""
+                  isThumbActive(idx, img) ? "ring-2 ring-black" : ""
                 }`}
                 aria-label={`Imagen ${idx + 1}`}
+                aria-selected={isThumbActive(idx, img)}
               >
                 <img
-                  src={i.url}
+                  src={img.url}
                   alt=""
                   className="w-full h-full object-cover"
                   loading="lazy"
