@@ -249,7 +249,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import axiosPublic from "../api/axiosPublic";
+import axios from "../api/axiosPublic"; // público para detalle
 import { useCart } from "../components/CartContext";
 
 const fmtARS = (v) =>
@@ -259,7 +259,7 @@ export default function ProductoDetalle() {
   const { id } = useParams();
   const [p, setP] = useState(null);
   const [error, setError] = useState("");
-  const [qty, setQty] = useState(1);
+  const [qtyStr, setQtyStr] = useState("1"); // 👈 string-friendly para mobile
   const [selIdx, setSelIdx] = useState(null); // arranca sin selección
   const { add } = useCart();
 
@@ -267,9 +267,10 @@ export default function ProductoDetalle() {
     let cancel = false;
     setError("");
     setP(null);
-    setSelIdx(null); // resetea selección al cambiar de producto
+    setSelIdx(null);
+    setQtyStr("1");
 
-    axiosPublic
+    axios
       .get(`products/tienda/producto/${id}/`)
       .then((r) => {
         if (cancel) return;
@@ -287,7 +288,6 @@ export default function ProductoDetalle() {
 
   const imagenes = p?.imagenes || [];
 
-  // Si el usuario eligió miniatura, va esa; si no, primaria; si no, la primera
   const activeUrl = useMemo(() => {
     if (!imagenes.length) return null;
     if (selIdx !== null && imagenes[selIdx]) return imagenes[selIdx].url;
@@ -301,15 +301,32 @@ export default function ProductoDetalle() {
   const precio = Number(p.precio);
   const cuotas4 = (precio / 4).toFixed(2);
   const sinStock = (p.stock ?? 0) <= 0;
+  const maxStock = typeof p.stock === "number" ? p.stock : Infinity;
 
-  const onQty = (v) => {
-    const max = p.stock ?? Infinity;
-    const n = Math.max(1, Math.min(max, Number(v) || 1));
-    setQty(n);
+  const parseClamp = (v) => {
+    const n = parseInt(v, 10);
+    if (!n || n < 1) return 1;
+    return Math.min(n, maxStock);
+  };
+
+  const onQtyChange = (e) => {
+    const v = e.target.value;
+    if (v === "" || /^[0-9]+$/.test(v)) setQtyStr(v);
+  };
+
+  const onQtyBlur = () => {
+    setQtyStr(String(parseClamp(qtyStr)));
+  };
+
+  const step = (delta) => {
+    const next = parseClamp(qtyStr === "" ? "1" : qtyStr);
+    const res = Math.min(Math.max(next + delta, 1), maxStock);
+    setQtyStr(String(res));
   };
 
   const addToCart = () => {
     if (sinStock) return;
+    const qty = parseClamp(qtyStr);
     const item = {
       id: p.id,
       nombre: p.nombre,
@@ -321,7 +338,6 @@ export default function ProductoDetalle() {
     add(item, qty);
   };
 
-  // resalta miniatura activa
   const isThumbActive = (idx, img) =>
     selIdx !== null ? idx === selIdx : !!img.is_primary || idx === 0;
 
@@ -398,15 +414,41 @@ export default function ProductoDetalle() {
 
         <p className="mt-4 text-gray-700 whitespace-pre-line">{p.descripcion}</p>
 
-        <div className="mt-6 flex items-center gap-3">
-          <input
-            type="number"
-            min={1}
-            max={p.stock || undefined}
-            value={qty}
-            onChange={(e) => onQty(e.target.value)}
-            className="w-24 border rounded-md px-3 py-2"
-          />
+        <div className="mt-6 flex items-stretch gap-3">
+          <div className="flex items-stretch border rounded-md overflow-hidden">
+            <button
+              type="button"
+              onClick={() => step(-1)}
+              className="px-3 text-base disabled:opacity-50"
+              disabled={sinStock}
+              aria-label="Disminuir cantidad"
+            >
+              −
+            </button>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              min={1}
+              max={p.stock || undefined}
+              value={qtyStr}
+              onChange={onQtyChange}
+              onBlur={onQtyBlur}
+              className="w-20 text-center outline-none"
+              disabled={sinStock}
+              aria-label="Cantidad"
+            />
+            <button
+              type="button"
+              onClick={() => step(1)}
+              className="px-3 text-base disabled:opacity-50"
+              disabled={sinStock || (typeof p.stock === "number" && parseClamp(qtyStr) >= p.stock)}
+              aria-label="Aumentar cantidad"
+            >
+              +
+            </button>
+          </div>
+
           <button
             onClick={addToCart}
             disabled={sinStock}

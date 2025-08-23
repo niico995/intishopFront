@@ -96,7 +96,6 @@ import { Link } from "react-router-dom";
 import { useCart } from "./CartContext";
 
 export default function ProductCard({ product }) {
-  const [qty, setQty] = useState(1);
   const { add } = useCart();
 
   // Tolerante a distintas formas de payload
@@ -119,18 +118,38 @@ export default function ProductCard({ product }) {
   const stock = product.stock ?? undefined;
   const img =
     product.imagenes?.find((i) => i.is_primary)?.url ||
-    product.imagenes?.[0]?.url;
+    product.imagenes?.[0]?.url ||
+    null;
 
-  const clampQty = (n) => {
-    const max = stock ?? Infinity;
-    const num = Math.max(1, Math.min(max, Number(n) || 1));
-    setQty(num);
+  // 👇 Mantener el input como string para permitir borrar/tipear
+  const [qtyStr, setQtyStr] = useState("1");
+
+  const maxStock = typeof stock === "number" ? stock : Infinity;
+
+  const parseClamp = (v) => {
+    const n = parseInt(v, 10);
+    if (!n || n < 1) return 1;
+    return Math.min(n, maxStock);
   };
 
-  const dec = () => clampQty((qty || 1) - 1);
-  const inc = () => clampQty((qty || 1) + 1);
+  const onChangeQty = (e) => {
+    const v = e.target.value;
+    // permitir vacío mientras escribe y sólo dígitos
+    if (v === "" || /^[0-9]+$/.test(v)) setQtyStr(v);
+  };
+
+  const onBlurQty = () => {
+    setQtyStr(String(parseClamp(qtyStr)));
+  };
+
+  const step = (delta) => {
+    const next = parseClamp((qtyStr === "" ? "1" : qtyStr));
+    const res = Math.min(Math.max(next + delta, 1), maxStock);
+    setQtyStr(String(res));
+  };
 
   const handleAdd = () => {
+    const qty = parseClamp(qtyStr);
     if (qty < 1) return;
     add(
       {
@@ -139,11 +158,15 @@ export default function ProductCard({ product }) {
         precio,
         seller_id: sellerId,
         seller_nombre: sellerNombre,
-        img,
+        img: img || undefined,
       },
       qty
     );
+    // si querés, podés resetear a "1"
+    // setQtyStr("1");
   };
+
+  const sinStock = (stock ?? 0) <= 0;
 
   return (
     <div className="border rounded-xl p-3 hover:shadow-sm transition">
@@ -175,41 +198,42 @@ export default function ProductCard({ product }) {
       </Link>
 
       <div className="mt-1">
-        <div className="text-lg font-semibold">
-          AR$ {precio.toLocaleString("es-AR")}
-        </div>
+        <div className="text-lg font-semibold">AR$ {precio.toLocaleString("es-AR")}</div>
         <div className="text-xs text-gray-500">
           en 4 cuotas de AR$ {Number(cuotas4).toLocaleString("es-AR")}
         </div>
       </div>
 
-      {/* Controles compactos (mejor en mobile) */}
+      {/* Controles compactos (funciona bien en mobile) */}
       <div className="mt-2 flex items-stretch gap-2">
-        <div className="flex items-center border rounded-md overflow-hidden">
+        <div className="flex items-stretch border rounded-md overflow-hidden">
           <button
             type="button"
-            onClick={dec}
-            className="px-2 py-1 text-sm hover:bg-gray-50"
+            onClick={() => step(-1)}
+            className="px-2 text-sm disabled:opacity-50"
+            disabled={sinStock}
             aria-label="Disminuir cantidad"
           >
             −
           </button>
           <input
-            type="tel"
+            type="text"
             inputMode="numeric"
             pattern="[0-9]*"
             min={1}
             max={stock || undefined}
-            value={qty}
-            onChange={(e) => clampQty(e.target.value)}
-            onBlur={(e) => clampQty(e.target.value)}
-            className="w-12 md:w-16 text-center outline-none py-1 text-sm"
+            value={qtyStr}
+            onChange={onChangeQty}
+            onBlur={onBlurQty}
+            className="w-14 text-center outline-none"
+            disabled={sinStock}
             aria-label="Cantidad"
           />
           <button
             type="button"
-            onClick={inc}
-            className="px-2 py-1 text-sm hover:bg-gray-50"
+            onClick={() => step(1)}
+            className="px-2 text-sm disabled:opacity-50"
+            disabled={sinStock || (typeof stock === "number" && parseClamp(qtyStr) >= stock)}
             aria-label="Aumentar cantidad"
           >
             +
@@ -218,11 +242,16 @@ export default function ProductCard({ product }) {
 
         <button
           onClick={handleAdd}
-          className="flex-1 px-3 py-2 md:py-2.5 rounded-md bg-black text-white text-sm md:text-base"
+          disabled={sinStock}
+          className="flex-1 px-3 py-2 rounded-md bg-black text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Agregar
         </button>
       </div>
+
+      {sinStock && (
+        <div className="mt-1 text-xs text-red-600">Sin stock</div>
+      )}
     </div>
   );
 }
