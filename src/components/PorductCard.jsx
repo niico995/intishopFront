@@ -95,10 +95,53 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "./CartContext";
 
+function resolveStock(p = {}) {
+  // 1) Prioridades directas (número)
+  const direct =
+    p.stock ??
+    p.stock_total ??
+    p.total_stock ??
+    p.stockDisponible ??
+    p.stock_disponible ??
+    p.disponible ??
+    p.quantity ??
+    p.qty ??
+    null;
+
+  const toNum = (v) => {
+    if (typeof v === "number") return v;
+    if (typeof v === "string" && v.trim() !== "") {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    }
+    return null;
+  };
+
+  const directNum = toNum(direct);
+  if (directNum !== null) return directNum;
+
+  // 2) Suma por depósito (array de objetos con cantidad/qty)
+  if (Array.isArray(p.stock_por_deposito)) {
+    const sum = p.stock_por_deposito.reduce((acc, it) => {
+      const n = toNum(it?.cantidad ?? it?.qty ?? it?.stock);
+      return acc + (n ?? 0);
+      // si querés por depósito específico, filtrá acá
+    }, 0);
+    return sum;
+  }
+
+  // 3) Otros nombres posibles
+  const fallbackNum = toNum(p.stock_global ?? p.available ?? p.availability);
+  if (fallbackNum !== null) return fallbackNum;
+
+  // 4) Indeterminado: devolvemos null (no afirmar sin stock)
+  return null;
+}
+
 export default function ProductCard({ product }) {
   const { add } = useCart();
 
-  // Tolerante a distintas formas de payload
+  // IDs / nombres tolerantes
   const sellerId =
     product.seller_id ??
     product.seller?.id ??
@@ -115,16 +158,22 @@ export default function ProductCard({ product }) {
 
   const precio = Number(product.precio || 0);
   const cuotas4 = (precio / 4).toFixed(2);
-  const stock = product.stock ?? undefined;
+
   const img =
     product.imagenes?.find((i) => i.is_primary)?.url ||
     product.imagenes?.[0]?.url ||
     null;
 
-  // 👇 Mantener el input como string para permitir borrar/tipear
-  const [qtyStr, setQtyStr] = useState("1");
+  // Stock robusto
+  const stockResuelto = resolveStock(product);          // número o null
+  const stockEsNumero = typeof stockResuelto === "number" && Number.isFinite(stockResuelto);
+  const maxStock = stockEsNumero ? stockResuelto : Infinity;
 
-  const maxStock = typeof stock === "number" ? stock : Infinity;
+  // Si no podemos determinar stock, NO marcamos sin stock
+  const sinStock = stockEsNumero ? stockResuelto <= 0 : false;
+
+  // Cantidad
+  const [qtyStr, setQtyStr] = useState("1");
 
   const parseClamp = (v) => {
     const n = parseInt(v, 10);
@@ -134,7 +183,6 @@ export default function ProductCard({ product }) {
 
   const onChangeQty = (e) => {
     const v = e.target.value;
-    // permitir vacío mientras escribe y sólo dígitos
     if (v === "" || /^[0-9]+$/.test(v)) setQtyStr(v);
   };
 
@@ -143,7 +191,7 @@ export default function ProductCard({ product }) {
   };
 
   const step = (delta) => {
-    const next = parseClamp((qtyStr === "" ? "1" : qtyStr));
+    const next = parseClamp(qtyStr === "" ? "1" : qtyStr);
     const res = Math.min(Math.max(next + delta, 1), maxStock);
     setQtyStr(String(res));
   };
@@ -162,11 +210,8 @@ export default function ProductCard({ product }) {
       },
       qty
     );
-    // si querés, podés resetear a "1"
     // setQtyStr("1");
   };
-
-  const sinStock = (stock ?? 0) <= 0;
 
   return (
     <div className="border rounded-xl p-3 hover:shadow-sm transition">
@@ -180,7 +225,7 @@ export default function ProductCard({ product }) {
         ) : null}
       </Link>
 
-      {/* Vendedor → página del vendedor (si tenemos id) */}
+      {/* Vendedor */}
       {sellerId ? (
         <Link to={`/vendedor/${sellerId}`} className="text-sm text-gray-500 hover:underline">
           {sellerNombre}
@@ -204,7 +249,7 @@ export default function ProductCard({ product }) {
         </div>
       </div>
 
-      {/* Controles compactos (funciona bien en mobile) */}
+      {/* Controles compactos */}
       <div className="mt-2 flex items-stretch gap-2">
         <div className="flex items-stretch border rounded-md overflow-hidden">
           <button
@@ -221,7 +266,7 @@ export default function ProductCard({ product }) {
             inputMode="numeric"
             pattern="[0-9]*"
             min={1}
-            max={stock || undefined}
+            max={stockEsNumero ? stockResuelto : undefined}
             value={qtyStr}
             onChange={onChangeQty}
             onBlur={onBlurQty}
@@ -233,7 +278,7 @@ export default function ProductCard({ product }) {
             type="button"
             onClick={() => step(1)}
             className="px-2 text-sm disabled:opacity-50"
-            disabled={sinStock || (typeof stock === "number" && parseClamp(qtyStr) >= stock)}
+            disabled={sinStock || (stockEsNumero && parseInt(qtyStr || "1", 10) >= stockResuelto)}
             aria-label="Aumentar cantidad"
           >
             +
@@ -249,8 +294,15 @@ export default function ProductCard({ product }) {
         </button>
       </div>
 
-      {sinStock && (
-        <div className="mt-1 text-xs text-red-600">Sin stock</div>
+      {/* Mensajes de stock */}
+      {stockEsNumero ? (
+        stockResuelto <= 0 ? (
+          <div className="mt-1 text-xs text-red-600">Sin stock</div>
+        ) : (
+          <div className="mt-1 text-xs text-gray-500">Stock: {stockResuelto}</div>
+        )
+      ) : (
+        <div className="mt-1 text-xs text-gray-500">Stock a confirmar</div>
       )}
     </div>
   );
