@@ -72,11 +72,184 @@
 //   );
 // }
 // src/pages/ProductoDetalle.jsx
+// import { useEffect, useMemo, useState } from "react";
+// import { useParams, Link } from "react-router-dom";
+// // ⬇️ opcional: si querés evitar mandar Authorization a un endpoint público
+// // import axios from "../api/axiosPublic";
+// import axios from "../api/axiosPublic";
+// import { useCart } from "../components/CartContext";
+
+// const fmtARS = (v) =>
+//   Number(v).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+// export default function ProductoDetalle() {
+//   const { id } = useParams();
+//   const [p, setP] = useState(null);
+//   const [error, setError] = useState("");
+//   const [qty, setQty] = useState(1);
+//   const [selIdx, setSelIdx] = useState(null); // 👈 arranca sin selección
+//   const { add } = useCart();
+
+//   useEffect(() => {
+//     let cancel = false;
+//     setError("");
+//     setP(null);
+//     setSelIdx(null); // 👈 resetea selección al cambiar de producto
+
+//     axios
+//       .get(`products/tienda/producto/${id}/`)
+//       .then((r) => {
+//         if (cancel) return;
+//         setP(r.data);
+//       })
+//       .catch(() => {
+//         if (cancel) return;
+//         setError("No pudimos cargar el producto.");
+//       });
+
+//     return () => {
+//       cancel = true;
+//     };
+//   }, [id]);
+
+//   const imagenes = p?.imagenes || [];
+
+//   // 👇 lógica corregida: si el usuario eligió miniatura, manda esa; si no, primaria; si no, la primera
+//   const activeUrl = useMemo(() => {
+//     if (!imagenes.length) return null;
+//     if (selIdx !== null && imagenes[selIdx]) return imagenes[selIdx].url;
+//     const prim = imagenes.find((i) => i.is_primary);
+//     return prim?.url || imagenes[0].url;
+//   }, [imagenes, selIdx]);
+
+//   if (error) return <div className="max-w-6xl mx-auto p-4">{error}</div>;
+//   if (!p) return <div className="max-w-6xl mx-auto p-4">Cargando…</div>;
+
+//   const precio = Number(p.precio);
+//   const cuotas4 = (precio / 4).toFixed(2);
+//   const sinStock = (p.stock ?? 0) <= 0;
+
+//   const onQty = (v) => {
+//     const max = p.stock ?? Infinity;
+//     const n = Math.max(1, Math.min(max, Number(v) || 1));
+//     setQty(n);
+//   };
+
+//   const addToCart = () => {
+//     if (sinStock) return;
+//     const item = {
+//       id: p.id,
+//       nombre: p.nombre,
+//       precio,
+//       seller_id: p.seller_id,
+//       seller_nombre: p.seller_nombre,
+//       img: activeUrl || undefined,
+//     };
+//     add(item, qty);
+//   };
+
+//   // helper para resaltar miniatura activa
+//   const isThumbActive = (idx, img) =>
+//     selIdx !== null ? idx === selIdx : !!img.is_primary || idx === 0;
+
+//   return (
+//     <div className="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+//       {/* Galería */}
+//       <div>
+//         <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-3">
+//           {activeUrl ? (
+//             <img
+//               src={activeUrl}
+//               alt={p.nombre}
+//               className="w-full h-full object-cover"
+//               loading="eager"
+//               decoding="async"
+//             />
+//           ) : null}
+//         </div>
+
+//         {/* Miniaturas */}
+//         {imagenes.length > 1 && (
+//           <div className="flex gap-2 flex-wrap">
+//             {imagenes.map((img, idx) => (
+//               <button
+//                 key={img.id || idx}
+//                 type="button"
+//                 onClick={() => setSelIdx(idx)}
+//                 className={`w-16 h-16 rounded-md border overflow-hidden ${
+//                   isThumbActive(idx, img) ? "ring-2 ring-black" : ""
+//                 }`}
+//                 aria-label={`Imagen ${idx + 1}`}
+//                 aria-selected={isThumbActive(idx, img)}
+//               >
+//                 <img
+//                   src={img.url}
+//                   alt=""
+//                   className="w-full h-full object-cover"
+//                   loading="lazy"
+//                   decoding="async"
+//                 />
+//               </button>
+//             ))}
+//           </div>
+//         )}
+//       </div>
+
+//       {/* Info */}
+//       <div>
+//         <h1 className="text-2xl font-semibold">{p.nombre}</h1>
+
+//         <div className="text-sm text-gray-500 mb-2">
+//           {p.seller_id ? (
+//             <Link to={`/vendedor/${p.seller_id}`} className="underline hover:no-underline">
+//               {p.seller_nombre}
+//             </Link>
+//           ) : (
+//             p.seller_nombre
+//           )}
+//         </div>
+
+//         <div className="text-3xl font-bold">AR$ {fmtARS(precio)}</div>
+//         <div className="text-sm text-gray-500">
+//           en 4 cuotas de AR$ {Number(cuotas4).toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+//         </div>
+
+//         <div className="mt-2 text-sm">
+//           Stock:{" "}
+//           {sinStock ? (
+//             <span className="text-red-600 font-medium">Sin stock</span>
+//           ) : (
+//             <span>{p.stock}</span>
+//           )}
+//         </div>
+
+//         <p className="mt-4 text-gray-700 whitespace-pre-line">{p.descripcion}</p>
+
+//         <div className="mt-6 flex items-center gap-3">
+//           <input
+//             type="number"
+//             min={1}
+//             max={p.stock || undefined}
+//             value={qty}
+//             onChange={(e) => onQty(e.target.value)}
+//             className="w-24 border rounded-md px-3 py-2"
+//           />
+//           <button
+//             onClick={addToCart}
+//             disabled={sinStock}
+//             className="px-4 py-2 rounded-md bg-black text-white disabled:opacity-50 disabled:cursor-not-allowed"
+//           >
+//             Agregar al carrito
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-// ⬇️ opcional: si querés evitar mandar Authorization a un endpoint público
-// import axios from "../api/axiosPublic";
-import axios from "../api/axiosPublic";
+import axiosPublic from "../api/axiosPublic";
 import { useCart } from "../components/CartContext";
 
 const fmtARS = (v) =>
@@ -87,16 +260,16 @@ export default function ProductoDetalle() {
   const [p, setP] = useState(null);
   const [error, setError] = useState("");
   const [qty, setQty] = useState(1);
-  const [selIdx, setSelIdx] = useState(null); // 👈 arranca sin selección
+  const [selIdx, setSelIdx] = useState(null); // arranca sin selección
   const { add } = useCart();
 
   useEffect(() => {
     let cancel = false;
     setError("");
     setP(null);
-    setSelIdx(null); // 👈 resetea selección al cambiar de producto
+    setSelIdx(null); // resetea selección al cambiar de producto
 
-    axios
+    axiosPublic
       .get(`products/tienda/producto/${id}/`)
       .then((r) => {
         if (cancel) return;
@@ -114,7 +287,7 @@ export default function ProductoDetalle() {
 
   const imagenes = p?.imagenes || [];
 
-  // 👇 lógica corregida: si el usuario eligió miniatura, manda esa; si no, primaria; si no, la primera
+  // Si el usuario eligió miniatura, va esa; si no, primaria; si no, la primera
   const activeUrl = useMemo(() => {
     if (!imagenes.length) return null;
     if (selIdx !== null && imagenes[selIdx]) return imagenes[selIdx].url;
@@ -148,7 +321,7 @@ export default function ProductoDetalle() {
     add(item, qty);
   };
 
-  // helper para resaltar miniatura activa
+  // resalta miniatura activa
   const isThumbActive = (idx, img) =>
     selIdx !== null ? idx === selIdx : !!img.is_primary || idx === 0;
 

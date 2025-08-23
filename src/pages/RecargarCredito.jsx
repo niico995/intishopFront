@@ -1,47 +1,126 @@
-// src/components/RecargaCredito.jsx
-import React, { useState } from 'react';
-import { crearRecarga } from '../api/recargarCredito';
+// // src/components/RecargaCredito.jsx
+// import React, { useState } from 'react';
+// import { crearRecarga } from '../api/recargarCredito';
 
-const RecargaCredito = () => {
-  const [monto, setMonto] = useState('');
-  const [loading, setLoading] = useState(false);
+// const RecargaCredito = () => {
+//   const [monto, setMonto] = useState('');
+//   const [loading, setLoading] = useState(false);
 
-  const handleRecarga = async () => {
-    if (!monto || isNaN(monto)) {
-      alert('Ingresá un monto válido');
-      return;
-    }
+//   const handleRecarga = async () => {
+//     if (!monto || isNaN(monto)) {
+//       alert('Ingresá un monto válido');
+//       return;
+//     }
 
-    setLoading(true);
+//     setLoading(true);
+//     try {
+//       const data = await crearRecarga(monto);
+//       window.location.href = data.checkout_url; // redirige al link de GoCuotas
+//     } catch (err) {
+//       alert('Error al generar la recarga');
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   return (
+//     <div className="p-4 max-w-sm mx-auto bg-white shadow rounded">
+//       <h2 className="text-xl font-bold mb-4">Recargar créditos</h2>
+//       <input
+//         type="number"
+//         value={monto}
+//         onChange={(e) => setMonto(e.target.value)}
+//         placeholder="Monto en pesos"
+//         className="border p-2 w-full rounded mb-4"
+//       />
+//       <button
+//         onClick={handleRecarga}
+//         disabled={loading}
+//         className="bg-blue-600 text-white px-4 py-2 rounded w-full"
+//       >
+//         {loading ? 'Procesando...' : 'Recargar con GoCuotas'}
+//       </button>
+//     </div>
+//   );
+// };
+
+// export default RecargaCredito;
+// src/pages/RecargarCredito.jsx
+import { useState } from 'react';
+import api from '../api/axiosConfig';
+
+export default function RecargarCredito() {
+  const [form, setForm] = useState({
+    monto: '',
+    payer_email: '',
+    payer_phone: '',
+  });
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+
+  const onChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const crearCheckout = async (e) => {
+    e.preventDefault();
+    setMsg(''); setErr('');
     try {
-      const data = await crearRecarga(monto);
-      window.location.href = data.checkout_url; // redirige al link de GoCuotas
-    } catch (err) {
-      alert('Error al generar la recarga');
-    } finally {
-      setLoading(false);
+      const payload = {
+        monto: form.monto,
+        // Solo enviamos si vienen, el backend hace fallback al dueño
+        ...(form.payer_email ? { payer_email: form.payer_email } : {}),
+        ...(form.payer_phone ? { payer_phone: form.payer_phone } : {}),
+      };
+      const { data } = await api.post('gocuotas/crear-recarga/', payload);
+      // Redirigimos al checkout de GoCuotas
+      window.location.href = data.checkout_url;
+    } catch (e) {
+      setErr(e?.response?.data?.error || 'No se pudo iniciar la recarga');
     }
   };
 
   return (
-    <div className="p-4 max-w-sm mx-auto bg-white shadow rounded">
-      <h2 className="text-xl font-bold mb-4">Recargar créditos</h2>
-      <input
-        type="number"
-        value={monto}
-        onChange={(e) => setMonto(e.target.value)}
-        placeholder="Monto en pesos"
-        className="border p-2 w-full rounded mb-4"
-      />
-      <button
-        onClick={handleRecarga}
-        disabled={loading}
-        className="bg-blue-600 text-white px-4 py-2 rounded w-full"
-      >
-        {loading ? 'Procesando...' : 'Recargar con GoCuotas'}
-      </button>
+    <div className="max-w-md mx-auto p-4">
+      <h1 className="text-xl font-bold mb-3">Cargar crédito</h1>
+
+      {msg && <div className="text-green-700">{msg}</div>}
+      {err && <div className="text-red-700">{err}</div>}
+
+      <form onSubmit={crearCheckout} className="space-y-3">
+        <input
+          name="monto"
+          type="number"
+          step="0.01"
+          min="1"
+          placeholder="Monto (ARS)"
+          className="w-full border rounded px-3 py-2"
+          value={form.monto}
+          onChange={onChange}
+          required
+        />
+        <div className="text-sm text-gray-600">Si otra persona va a pagar, completá sus datos:</div>
+        <input
+          name="payer_email"
+          type="email"
+          placeholder="Email del pagador (opcional)"
+          className="w-full border rounded px-3 py-2"
+          value={form.payer_email}
+          onChange={onChange}
+        />
+        <input
+          name="payer_phone"
+          type="text"
+          placeholder="Teléfono del pagador (opcional)"
+          className="w-full border rounded px-3 py-2"
+          value={form.payer_phone}
+          onChange={onChange}
+        />
+        <button className="w-full bg-black text-white rounded px-4 py-2">Ir a pagar</button>
+      </form>
+
+      <p className="text-xs text-gray-500 mt-4">
+        Te vamos a acreditar el saldo cuando GoCuotas confirme el pago (webhook). Si la otra persona paga,
+        el crédito igual se carga en tu cuenta.
+      </p>
     </div>
   );
-};
-
-export default RecargaCredito;
+}

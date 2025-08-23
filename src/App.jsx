@@ -24,6 +24,7 @@ import Login from "./pages/login/login";
 // Cliente
 import CargarPerfilCliente from "./pages/CargarPerfilCliente";
 import DashboardCliente from "./pages/DashboardCliente";
+import RecargarCredito from "./pages/RecargarCredito";
 
 // Admin
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -94,6 +95,7 @@ function App() {
               {/* Cliente */}
               <Route path="/cliente/perfil" element={<CargarPerfilCliente />} />
               <Route path="/dashboard-cliente" element={<DashboardCliente />} />
+              <Route path="/cliente/recargar" element={<RecargarCredito />} />
             </Route>
 
             {/* ========= LOGIN (sin Navbar) ========= */}
