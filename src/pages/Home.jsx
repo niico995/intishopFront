@@ -159,7 +159,7 @@
 
 import { useEffect, useState } from "react";
 import axiosPublic from "../api/axiosPublic";
-import ProductCard from "../components/ProductCard"; // 👈 corregido el typo del import
+import ProductCard from "../components/PorductCard"; // 👈 corregido el typo del import
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";
