@@ -95,53 +95,54 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "./CartContext";
 
-function resolveStock(p = {}) {
-  // 1) Prioridades directas (número)
+/** Convierte a número seguro o null */
+function toNum(v) {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string" && v.trim() !== "") {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+/** Stock ESTRICTO:
+ * - Usa campos numéricos si existen
+ * - Suma por depósito si viene array
+ * - Si no hay nada numérico → 0 (sin stock)
+ */
+function resolveStockStrict(p = {}) {
+  // Números directos (ajustá estos alias si tu API usa otros)
   const direct =
     p.stock ??
     p.stock_total ??
     p.total_stock ??
     p.stockDisponible ??
     p.stock_disponible ??
-    p.disponible ??
+    p.available_quantity ??
     p.quantity ??
     p.qty ??
     null;
 
-  const toNum = (v) => {
-    if (typeof v === "number") return v;
-    if (typeof v === "string" && v.trim() !== "") {
-      const n = Number(v);
-      return Number.isFinite(n) ? n : null;
-    }
-    return null;
-  };
-
   const directNum = toNum(direct);
-  if (directNum !== null) return directNum;
+  if (directNum !== null) return Math.max(0, directNum);
 
-  // 2) Suma por depósito (array de objetos con cantidad/qty)
+  // Suma por depósito
   if (Array.isArray(p.stock_por_deposito)) {
     const sum = p.stock_por_deposito.reduce((acc, it) => {
       const n = toNum(it?.cantidad ?? it?.qty ?? it?.stock);
       return acc + (n ?? 0);
-      // si querés por depósito específico, filtrá acá
     }, 0);
-    return sum;
+    return Math.max(0, sum);
   }
 
-  // 3) Otros nombres posibles
-  const fallbackNum = toNum(p.stock_global ?? p.available ?? p.availability);
-  if (fallbackNum !== null) return fallbackNum;
-
-  // 4) Indeterminado: devolvemos null (no afirmar sin stock)
-  return null;
+  // Nada confiable → 0
+  return 0;
 }
 
 export default function ProductCard({ product }) {
   const { add } = useCart();
 
-  // IDs / nombres tolerantes
+  // Vendedor / nombres tolerantes
   const sellerId =
     product.seller_id ??
     product.seller?.id ??
@@ -164,41 +165,55 @@ export default function ProductCard({ product }) {
     product.imagenes?.[0]?.url ||
     null;
 
-  // Stock robusto
-  const stockResuelto = resolveStock(product);          // número o null
-  const stockEsNumero = typeof stockResuelto === "number" && Number.isFinite(stockResuelto);
-  const maxStock = stockEsNumero ? stockResuelto : Infinity;
+  // === STOCK (estricto) ===
+  const stock = resolveStockStrict(product); // número >= 0
+  const sinStock = stock <= 0;
+  const maxStock = stock; // límite superior real
 
-  // Si no podemos determinar stock, NO marcamos sin stock
-  const sinStock = stockEsNumero ? stockResuelto <= 0 : false;
+  // Cantidad (como string para UX de mobile)
+  const [qtyStr, setQtyStr] = useState(stock > 0 ? "1" : "0");
 
-  // Cantidad
-  const [qtyStr, setQtyStr] = useState("1");
+  const clamp = (n) => {
+    // si hay stock, mínimo 1; si no hay, mínimo 0
+    const min = stock > 0 ? 1 : 0;
+    return Math.min(Math.max(n, min), maxStock);
+  };
 
   const parseClamp = (v) => {
     const n = parseInt(v, 10);
-    if (!n || n < 1) return 1;
-    return Math.min(n, maxStock);
+    if (!Number.isFinite(n)) return stock > 0 ? 1 : 0;
+    return clamp(n);
   };
 
   const onChangeQty = (e) => {
     const v = e.target.value;
-    if (v === "" || /^[0-9]+$/.test(v)) setQtyStr(v);
+    // permitir vacío mientras escribe y sólo dígitos
+    if (v === "" || /^[0-9]+$/.test(v)) {
+      if (v === "") {
+        setQtyStr(v);
+      } else {
+        setQtyStr(String(parseClamp(v)));
+      }
+    }
   };
 
   const onBlurQty = () => {
-    setQtyStr(String(parseClamp(qtyStr)));
+    if (qtyStr === "") {
+      setQtyStr(stock > 0 ? "1" : "0");
+    } else {
+      setQtyStr(String(parseClamp(qtyStr)));
+    }
   };
 
   const step = (delta) => {
-    const next = parseClamp(qtyStr === "" ? "1" : qtyStr);
-    const res = Math.min(Math.max(next + delta, 1), maxStock);
-    setQtyStr(String(res));
+    const base = qtyStr === "" ? (stock > 0 ? 1 : 0) : parseInt(qtyStr, 10);
+    const next = Number.isFinite(base) ? base + delta : (stock > 0 ? 1 : 0);
+    setQtyStr(String(clamp(next)));
   };
 
   const handleAdd = () => {
     const qty = parseClamp(qtyStr);
-    if (qty < 1) return;
+    if (qty < 1) return; // nunca deja agregar si no hay stock
     add(
       {
         id: product.id,
@@ -210,6 +225,7 @@ export default function ProductCard({ product }) {
       },
       qty
     );
+    // opcional: resetear a 1
     // setQtyStr("1");
   };
 
@@ -249,14 +265,14 @@ export default function ProductCard({ product }) {
         </div>
       </div>
 
-      {/* Controles compactos */}
+      {/* Controles */}
       <div className="mt-2 flex items-stretch gap-2">
         <div className="flex items-stretch border rounded-md overflow-hidden">
           <button
             type="button"
             onClick={() => step(-1)}
             className="px-2 text-sm disabled:opacity-50"
-            disabled={sinStock}
+            disabled={sinStock || parseInt(qtyStr || "0", 10) <= 1}
             aria-label="Disminuir cantidad"
           >
             −
@@ -265,8 +281,8 @@ export default function ProductCard({ product }) {
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
-            min={1}
-            max={stockEsNumero ? stockResuelto : undefined}
+            min={stock > 0 ? 1 : 0}
+            max={maxStock}
             value={qtyStr}
             onChange={onChangeQty}
             onBlur={onBlurQty}
@@ -278,7 +294,7 @@ export default function ProductCard({ product }) {
             type="button"
             onClick={() => step(1)}
             className="px-2 text-sm disabled:opacity-50"
-            disabled={sinStock || (stockEsNumero && parseInt(qtyStr || "1", 10) >= stockResuelto)}
+            disabled={sinStock || parseInt(qtyStr || "0", 10) >= maxStock}
             aria-label="Aumentar cantidad"
           >
             +
@@ -287,7 +303,7 @@ export default function ProductCard({ product }) {
 
         <button
           onClick={handleAdd}
-          disabled={sinStock}
+          disabled={sinStock || parseInt(qtyStr || "0", 10) < 1}
           className="flex-1 px-3 py-2 rounded-md bg-black text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Agregar
@@ -295,14 +311,10 @@ export default function ProductCard({ product }) {
       </div>
 
       {/* Mensajes de stock */}
-      {stockEsNumero ? (
-        stockResuelto <= 0 ? (
-          <div className="mt-1 text-xs text-red-600">Sin stock</div>
-        ) : (
-          <div className="mt-1 text-xs text-gray-500">Stock: {stockResuelto}</div>
-        )
+      {sinStock ? (
+        <div className="mt-1 text-xs text-red-600">Sin stock</div>
       ) : (
-        <div className="mt-1 text-xs text-gray-500">Stock a confirmar</div>
+        <div className="mt-1 text-xs text-gray-500">Stock: {maxStock}</div>
       )}
     </div>
   );
