@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "../api/axiosConfig";
-import { toast } from "../../utils/notify";
+import { toast } from "../utils/notify";
 
 let api = axiosInstance()
 export default function VentasVendedor() {
