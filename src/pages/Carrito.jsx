@@ -1,12 +1,12 @@
 // src/pages/Carrito.jsx
 import { useState } from "react";
-import axiosInstance from "../api/axiosConfig"; // 👈 tu axios, sin alias raros
+import axiosInstance from "../api/axiosConfig";
 import { useCart } from "../components/CartContext";
 import { alert, toast } from "../utils/notify";
 
 export default function Carrito() {
   const { items, updateQty, remove, clear } = useCart();
-  const [removeCount, setRemoveCount] = useState({}); // { [id]: n }
+  const [removeCount, setRemoveCount] = useState({});
   const [loading, setLoading] = useState(false);
 
   const total = items.reduce(
@@ -33,13 +33,13 @@ export default function Carrito() {
     setLoading(true);
 
     try {
-      // 1) Intentar confirmar con créditos
+      // ✅ Ruta correcta: clientes/compras/confirmar/
       const payload = {
         items: items.map((it) => ({ product_id: it.id, cantidad: it.qty })),
         usar_creditos: true,
       };
 
-      const { data } = await axiosInstance.post("ventas/confirmar/", payload);
+      const { data } = await axiosInstance.post("clientes/compras/confirmar/", payload);
       toast("Compra confirmada. Te enviamos los tickets por email.", "success");
 
       if (data?.tickets?.length) {
@@ -50,7 +50,6 @@ export default function Carrito() {
       }
       clear();
     } catch (e) {
-      // 2) Si NO alcanzan los créditos → crear recarga y redirigir al checkout externo
       const status = e?.response?.status;
       const respData = e?.response?.data || {};
 
@@ -88,7 +87,7 @@ export default function Carrito() {
 
           if (paymentUrl) {
             toast("Te redirigimos al pago…", "info");
-            window.location.href = paymentUrl; // 🔁 Checkout externo (GoCuotas)
+            window.location.href = paymentUrl;
             return;
           }
 
@@ -102,7 +101,6 @@ export default function Carrito() {
           toast(msg2, "error");
         }
       } else {
-        // Otros errores (auth, validaciones, etc.)
         if (status === 401) {
           toast("Tenés que iniciar sesión para confirmar la compra.", "error");
         } else {
