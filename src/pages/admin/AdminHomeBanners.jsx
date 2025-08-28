@@ -19,7 +19,6 @@ export default function AdminHomeBanners() {
     setLoading(true);
     setErr("");
     try {
-      // GET /api/admin/home-banners/?slot=principal|intermedio
       const { data } = await axios.get("admin/home-banners/", { params: { slot } });
       setBanners(data);
     } catch (e) {
@@ -152,12 +151,10 @@ export default function AdminHomeBanners() {
         <button className="rounded px-4 py-2 border hover:bg-black hover:text-white">Subir banner</button>
       </form>
 
-      {/* Mensajes */}
       {(msg || err) && (
         <div className={`${err ? "text-red-600" : "text-green-600"} text-sm`}>{err || msg}</div>
       )}
 
-      {/* Lista */}
       {loading ? (
         <div>Cargando…</div>
       ) : (
@@ -193,7 +190,9 @@ export default function AdminHomeBanners() {
                     }}
                   />
                 </div>
-                <div className="text-sm text-gray-500">Orden: {b.orden} · Estado: {b.activo ? "Activo" : "Inactivo"}</div>
+                <div className="text-sm text-gray-500">
+                  Orden: {b.orden} · Estado: {b.activo ? "Activo" : "Inactivo"}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => onToggle(b)} className="px-3 py-1 border rounded">
                     {b.activo ? "Desactivar" : "Activar"}

@@ -1,92 +1,73 @@
-// src/pages/admin/AdminMultiplicador.jsx
 import { useEffect, useState } from "react";
 import api from "../../api/axiosConfig";
-import { toast, alert } from "../../utils/notify";
+import { toast } from "../../utils/notify";
 
 export default function AdminMultiplicador() {
-  const [m, setM] = useState("1.50");
+  const [valor, setValor] = useState("1,50");
   const [recalc, setRecalc] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const { data } = await api.get("admin/config/pricing/");
-        if (!mounted) return;
-        setM(String(data?.markup_multiplier ?? "1.50"));
-      } catch (e) {
-        alert("Error", "No se pudo cargar el multiplicador", "error");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const onSave = async (e) => {
-    e.preventDefault();
-    setSaving(true);
+  const load = async () => {
     try {
-      const { data } = await api.patch("admin/config/pricing/update/", {
-        markup_multiplier: String(m).trim(),
-        recalc,
-      });
-      toast(`Guardado. M=${data?.markup_multiplier}`);
-      if (recalc) toast(`Productos recalculados: ${data?.updated ?? 0}`);
+      const { data } = await api.get("admin/multiplicador/");
+      // mostrar con coma para AR
+      const v = String(data?.multiplicador ?? "1.50").replace(".", ",");
+      setValor(v);
     } catch (e) {
-      const d = e?.response?.data;
-      alert("No se pudo guardar", d?.error || "Error", "error");
-    } finally {
-      setSaving(false);
+      alert("Error\n\nNo se pudo cargar el multiplicador");
     }
   };
 
-  if (loading) return <div className="p-4">Cargando…</div>;
+  useEffect(() => {
+    load();
+  }, []);
+
+  const guardar = async () => {
+    setLoading(true);
+    try {
+      const payload = {
+        multiplicador: String(valor).trim().replace(",", "."), // backend acepta punto
+        recalcular: recalc,
+      };
+      await api.put("admin/multiplicador/", payload);
+      toast("Guardado", "success");
+      await load();
+    } catch (e) {
+      toast(e?.response?.data?.error || "No se pudo guardar", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="max-w-xl mx-auto p-4">
-      <h2 className="text-xl font-semibold mb-2">Configuración de Precios</h2>
-      <p className="text-sm text-gray-600 mb-4">
+    <div className="max-w-xl mx-auto p-6">
+      <h2 className="text-2xl font-bold text-center mb-6">Configuración de Precios</h2>
+      <p className="text-center text-sm text-gray-600 mb-4">
         El <b>precio público</b> se calcula como <code>costo × M</code>.
       </p>
 
-      <form onSubmit={onSave} className="grid gap-3">
-        <label className="grid gap-1">
-          <span>Multiplicador (M)</span>
-          <input
-            type="number"
-            step="0.01"
-            min="0.01"
-            value={m}
-            onChange={(e) => setM(e.target.value)}
-            className="border rounded px-3 py-2"
-            required
-          />
-        </label>
+      <label className="block text-sm mb-1">Multiplicador (M)</label>
+      <input
+        className="w-full border rounded px-3 py-2 mb-3"
+        value={valor}
+        onChange={(e) => setValor(e.target.value)}
+        placeholder="1,50"
+      />
 
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={recalc}
-            onChange={(e) => setRecalc(e.target.checked)}
-          />
-          <span>Recalcular precios existentes ahora</span>
-        </label>
+      <label className="inline-flex items-center gap-2 mb-4">
+        <input type="checkbox" checked={recalc} onChange={(e) => setRecalc(e.target.checked)} />
+        Recalcular precios existentes ahora
+      </label>
 
+      <div>
         <button
-          type="submit"
-          disabled={saving}
-          className={`px-4 py-2 rounded text-white ${
-            saving ? "bg-gray-500" : "bg-blue-600 hover:bg-blue-700"
-          }`}
+          disabled={loading}
+          onClick={guardar}
+          className="px-4 py-2 rounded bg-blue-700 text-white disabled:opacity-60"
         >
-          {saving ? "Guardando…" : "Guardar"}
+          {loading ? "Guardando..." : "Guardar"}
         </button>
-      </form>
+      </div>
     </div>
   );
 }
