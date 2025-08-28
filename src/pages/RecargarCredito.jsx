@@ -47,6 +47,7 @@
 // export default RecargaCredito;
 // src/pages/RecargarCredito.jsx
 // src/pages/RecargarCredito.jsx
+// src/pages/RecargarCredito.jsx
 import { useState } from 'react';
 import { crearRecarga } from '../api/recargarCredito';
 
@@ -54,7 +55,7 @@ export default function RecargarCredito() {
   const [form, setForm] = useState({ monto: '', payer_email: '', payer_phone: '' });
   const [err, setErr] = useState('');
 
-  const onChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  const onChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
   const crearCheckout = async (e) => {
     e.preventDefault();
@@ -64,9 +65,11 @@ export default function RecargarCredito() {
         ...(form.payer_email ? { payer_email: form.payer_email } : {}),
         ...(form.payer_phone ? { payer_phone: form.payer_phone } : {}),
       });
+
       try { localStorage.setItem('last_recarga_monto', String(form.monto || '')); } catch {}
+
       if (!data?.checkout_url) throw new Error('Checkout URL vacío');
-      window.location.href = data.checkout_url; // ← ACÁ se inicia el checkout (redirige a GoCuotas)
+      window.location.href = data.checkout_url; // redirección a GoCuotas (checkout)
     } catch (e) {
       setErr(e?.response?.data?.error || e?.message || 'No se pudo iniciar la recarga');
     }
@@ -74,8 +77,8 @@ export default function RecargarCredito() {
 
   return (
     <form onSubmit={crearCheckout} className="max-w-md mx-auto p-4 space-y-3">
-      <h1 className="text-xl font-bold">Cargar crédito</h1>
-      {err && <div className="text-red-700">{err}</div>}
+      <h1 className="text-xl font-bold text-center">Cargar crédito</h1>
+      {err && <div className="text-red-700 text-center">{err}</div>}
 
       <input
         name="monto"
@@ -90,6 +93,7 @@ export default function RecargarCredito() {
       />
 
       <div className="text-sm text-gray-600">Si otra persona va a pagar, completá sus datos:</div>
+
       <input
         name="payer_email"
         type="email"
@@ -98,6 +102,7 @@ export default function RecargarCredito() {
         value={form.payer_email}
         onChange={onChange}
       />
+
       <input
         name="payer_phone"
         type="text"
@@ -109,7 +114,7 @@ export default function RecargarCredito() {
 
       <button className="w-full bg-black text-white rounded px-4 py-2">Ir a pagar</button>
 
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-gray-500 text-center">
         El saldo se acredita cuando GoCuotas confirma el pago (webhook).
       </p>
     </form>
