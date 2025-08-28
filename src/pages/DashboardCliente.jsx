@@ -13,19 +13,17 @@ const DashboardCliente = () => {
         Cargar/Ver mi perfil
       </div>
 
-      {/* <div style={styles.button} onClick={() => navigate('/cliente/creditos')}>
-        Cargar créditos
-      </div> */}
-
-      {/* <div style={styles.button} onClick={() => navigate('/productos')}>
-        Ver productos disponibles
-      </div> */}
+      {/* ➕ Nuevo: ver compras y marcar “Recibida” */}
+      <div style={styles.button} onClick={() => navigate('/cliente/compras')}>
+        Ver mis compras (marcar recibida)
+      </div>
 
       <div className="min-h-screen p-6 bg-gray-100">
-      <h1 className="text-2xl font-semibold mb-6">Mi Perfil</h1>
-      <RecargaCredito />
-    </div>
-    <CreditosDisponibles />
+        <h1 className="text-2xl font-semibold mb-6">Mi Perfil</h1>
+        <RecargaCredito />
+      </div>
+
+      <CreditosDisponibles />
     </div>
   );
 };

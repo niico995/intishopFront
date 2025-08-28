@@ -31,24 +31,33 @@ const DashboardSocio = () => {
     <div style={styles.container}>
       <h2 style={styles.title}>Panel del Socio</h2>
 
-      <div style={styles.button} onClick={() => navigate('/productos')}>
+      <div style={styles.button} onClick={() => navigate('/socio/productos')}>
         Ver mis productos
       </div>
 
-      <div style={styles.button} onClick={() => navigate('/productos/cargar')}>
+      <div style={styles.button} onClick={() => navigate('/socio/productos/cargar')}>
         Cargar producto
       </div>
 
-      <div style={styles.button} onClick={() => navigate('/pagos')}>
+      {/* ✅ Nuevo: ver ventas para marcar “Entregada” */}
+      <div style={styles.button} onClick={() => navigate('/socio/ventas')}>
+        Ver mis ventas (marcar entregada)
+      </div>
+
+      <div style={styles.button} onClick={() => navigate('/socio/pagos')}>
         Ver mis pagos
       </div>
 
-      <div style={{ ...styles.button, backgroundColor: '#28a745' }} onClick={() => navigate('/socio/perfil')}>
+      <div
+        style={{ ...styles.button, backgroundColor: '#28a745' }}
+        onClick={() => navigate('/socio/perfil')}
+      >
         Ver/Editar mi perfil
       </div>
-      <div style={styles.button} onClick={() => navigate('/perfil-socio')}>
-  Ver mi perfil
-</div>
+
+      <div style={styles.button} onClick={() => navigate('/socio/perfil-ver')}>
+        Ver mi perfil público
+      </div>
     </div>
   );
 };
@@ -73,7 +82,7 @@ const styles = {
     cursor: 'pointer',
     fontSize: 16,
     transition: 'background-color 0.2s ease',
-  }
+  },
 };
 
 export default DashboardSocio;

@@ -177,6 +177,8 @@ import Login from "./pages/login/login";
 import CargarPerfilCliente from "./pages/CargarPerfilCliente";
 import DashboardCliente from "./pages/DashboardCliente";
 import RecargarCredito from "./pages/RecargarCredito";
+// ✅ NUEVO: cliente ve compras y marca “Recibida”
+import MisCompras from "./pages/MisCompras";
 
 // Admin
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -201,7 +203,8 @@ import EditarProducto from "./pages/EditarProducto";
 import ListadoProductos from "./pages/ListadoProductos";
 import BannersSocio from "./pages/BannerSocio";
 import SocioPerfilBancario from "./pages/SocioPerfilBancario";
-
+// ✅ NUEVO: socio ve ventas y marca “Entregada”
+import VentasVendedor from "./pages/Ventas";
 // Pagos (callbacks GoCuotas)
 import PagoExito from "./pages/pagos/PagoExito";
 import PagoError from "./pages/pagos/PagoError";
@@ -253,8 +256,9 @@ function App() {
               {/* Cliente */}
               <Route path="/cliente/perfil" element={<CargarPerfilCliente />} />
               <Route path="/dashboard-cliente" element={<DashboardCliente />} />
-              {/* ✅ Ruta de recarga corregida */}
               <Route path="/cliente/recargar-credito" element={<RecargarCredito />} />
+              {/* ✅ NUEVA: compras del cliente (marcar recibida) */}
+              <Route path="/cliente/compras" element={<MisCompras />} />
 
               {/* GoCuotas callbacks */}
               <Route path="/pago/exito" element={<PagoExito />} />
@@ -301,6 +305,8 @@ function App() {
                 <Route path="banners" element={<BannersSocio />} />
                 <Route path="perfil-bancario" element={<SocioPerfilBancario />} />
                 <Route path="banco" element={<SocioPerfilBancario />} />
+                {/* ✅ NUEVA: ventas del socio (marcar entregada) */}
+                <Route path="ventas" element={<VentasVendedor />} />
                 <Route path="*" element={<Navigate to="/socio/productos" replace />} />
               </Route>
             </Route>

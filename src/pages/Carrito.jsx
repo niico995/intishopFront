@@ -1,11 +1,13 @@
 // src/pages/Carrito.jsx
 import { useState } from "react";
+import api from "../api/axiosConfig";
 import { useCart } from "../components/CartContext";
 import { alert, toast } from "../utils/notify";
 
 export default function Carrito() {
   const { items, updateQty, remove, clear } = useCart();
   const [removeCount, setRemoveCount] = useState({}); // { [id]: n }
+  const [loading, setLoading] = useState(false);
 
   const total = items.reduce(
     (acc, it) => acc + Number(it.precio || 0) * Number(it.qty || 1),
@@ -26,6 +28,38 @@ export default function Carrito() {
     }
   };
 
+  const handleCheckout = async () => {
+    if (!items.length || loading) return;
+    setLoading(true);
+    try {
+      const payload = {
+        items: items.map((it) => ({ product_id: it.id, cantidad: it.qty })),
+        usar_creditos: true,
+      };
+      // Importante: ruta relativa (sin barra inicial) para respetar baseURL con /api/
+      const { data } = await api.post("ventas/confirmar/", payload);
+      toast("Compra confirmada. Te enviamos los tickets por email.", "success");
+
+      if (data?.tickets?.length) {
+        alert(
+          "Códigos de retiro:\n" +
+            data.tickets.map((t) => `${t.seller}: ${t.codigo_retiro}`).join("\n")
+        );
+      }
+      clear();
+    } catch (e) {
+      console.error(e);
+      const msg =
+        e?.response?.data?.error ||
+        (e?.response?.status === 401
+          ? "Tenés que iniciar sesión para confirmar la compra."
+          : "No se pudo confirmar la compra");
+      toast(msg, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!items.length)
     return <div className="p-4">Tu carrito está vacío.</div>;
 
@@ -40,10 +74,10 @@ export default function Carrito() {
             className="flex items-center justify-between border rounded px-3 py-2"
           >
             <div className="flex items-center gap-3">
-              {p.img ? (
+              {p.imagen || p.img ? (
                 <img
-                  src={p.img}
-                  alt=""
+                  src={p.imagen || p.img}
+                  alt={p.nombre || ""}
                   className="w-12 h-12 object-cover rounded"
                 />
               ) : null}
@@ -105,17 +139,22 @@ export default function Carrito() {
           Vaciar carrito
         </button>
         <div className="text-lg font-semibold">
-          Total: AR$ {total.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+          Total: AR${" "}
+          {total.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
         </div>
       </div>
 
       <div className="mt-4">
         <button
-          onClick={() => alert("Checkout", "Continuar con el pago", "info")}
-          className="px-4 py-2 rounded bg-black text-white"
+          onClick={handleCheckout}
+          disabled={loading}
+          className="px-4 py-2 rounded bg-black text-white disabled:opacity-60"
         >
-          Ir a pagar
+          {loading ? "Procesando..." : "Ir a pagar"}
         </button>
+        <div className="text-sm text-gray-600 mt-2">
+          Te enviaremos los tickets por email (un ticket por comercio).
+        </div>
       </div>
     </div>
   );
