@@ -253,9 +253,10 @@ function App() {
               {/* Cliente */}
               <Route path="/cliente/perfil" element={<CargarPerfilCliente />} />
               <Route path="/dashboard-cliente" element={<DashboardCliente />} />
-              <Route path="/cliente/recargar" element={<RecargarCredito />} />
+              {/* ✅ Ruta de recarga corregida */}
+              <Route path="/cliente/recargar-credito" element={<RecargarCredito />} />
 
-              {/* GoCuotas callbacks (PROD) */}
+              {/* GoCuotas callbacks */}
               <Route path="/pago/exito" element={<PagoExito />} />
               <Route path="/pago/error" element={<PagoError />} />
             </Route>
@@ -279,7 +280,6 @@ function App() {
               <Route path="socios/:id" element={<AdminSocioDetail />} />
               <Route path="pagos/socio/:id" element={<DetallePagos />} />
               <Route path="banners-home" element={<AdminHomeBanners />} />
-              {/* ✅ Nueva sección admin */}
               <Route path="config/precios" element={<AdminMultiplicador />} />
             </Route>
 
@@ -299,12 +299,8 @@ function App() {
                 <Route path="productos/cargar" element={<CargarProducto />} />
                 <Route path="productos/editar/:id" element={<EditarProducto />} />
                 <Route path="banners" element={<BannersSocio />} />
-
-                {/* ✅ Bancarios: soportamos ambas rutas por conveniencia */}
                 <Route path="perfil-bancario" element={<SocioPerfilBancario />} />
                 <Route path="banco" element={<SocioPerfilBancario />} />
-
-                {/* ⚠️ El wildcard SIEMPRE al final para no bloquear rutas */}
                 <Route path="*" element={<Navigate to="/socio/productos" replace />} />
               </Route>
             </Route>

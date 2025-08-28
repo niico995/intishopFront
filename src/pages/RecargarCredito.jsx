@@ -46,90 +46,72 @@
 
 // export default RecargaCredito;
 // src/pages/RecargarCredito.jsx
+// src/pages/RecargarCredito.jsx
 import { useState } from 'react';
-import api from '../api/axiosConfig';
+import { crearRecarga } from '../api/recargarCredito';
 
 export default function RecargarCredito() {
-  const [form, setForm] = useState({
-    monto: '',
-    payer_email: '',
-    payer_phone: '',
-  });
-  const [msg, setMsg] = useState('');
+  const [form, setForm] = useState({ monto: '', payer_email: '', payer_phone: '' });
   const [err, setErr] = useState('');
 
   const onChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   const crearCheckout = async (e) => {
     e.preventDefault();
-    setMsg(''); setErr('');
+    setErr('');
     try {
-      const payload = {
-        monto: form.monto,
-        // Solo enviamos si vienen, el backend hace fallback al dueño
+      const data = await crearRecarga(form.monto, {
         ...(form.payer_email ? { payer_email: form.payer_email } : {}),
         ...(form.payer_phone ? { payer_phone: form.payer_phone } : {}),
-      };
-
-      const { data } = await api.post('gocuotas/crear-recarga/', payload);
-
-      // ✅ Guardamos el monto para mostrarlo en /pago/exito y luego redirigimos
-      try {
-        localStorage.setItem('last_recarga_monto', String(form.monto || ''));
-      } catch {}
-
-      if (!data?.checkout_url) {
-        throw new Error('Checkout URL vacío');
-      }
-      window.location.href = data.checkout_url;
+      });
+      try { localStorage.setItem('last_recarga_monto', String(form.monto || '')); } catch {}
+      if (!data?.checkout_url) throw new Error('Checkout URL vacío');
+      window.location.href = data.checkout_url; // ← ACÁ se inicia el checkout (redirige a GoCuotas)
     } catch (e) {
       setErr(e?.response?.data?.error || e?.message || 'No se pudo iniciar la recarga');
     }
   };
 
   return (
-    <div className="max-w-md mx-auto p-4">
-      <h1 className="text-xl font-bold mb-3">Cargar crédito</h1>
-
-      {msg && <div className="text-green-700">{msg}</div>}
+    <form onSubmit={crearCheckout} className="max-w-md mx-auto p-4 space-y-3">
+      <h1 className="text-xl font-bold">Cargar crédito</h1>
       {err && <div className="text-red-700">{err}</div>}
 
-      <form onSubmit={crearCheckout} className="space-y-3">
-        <input
-          name="monto"
-          type="number"
-          step="0.01"
-          min="1"
-          placeholder="Monto (ARS)"
-          className="w-full border rounded px-3 py-2"
-          value={form.monto}
-          onChange={onChange}
-          required
-        />
-        <div className="text-sm text-gray-600">Si otra persona va a pagar, completá sus datos:</div>
-        <input
-          name="payer_email"
-          type="email"
-          placeholder="Email del pagador (opcional)"
-          className="w-full border rounded px-3 py-2"
-          value={form.payer_email}
-          onChange={onChange}
-        />
-        <input
-          name="payer_phone"
-          type="text"
-          placeholder="Teléfono del pagador (opcional)"
-          className="w-full border rounded px-3 py-2"
-          value={form.payer_phone}
-          onChange={onChange}
-        />
-        <button className="w-full bg-black text-white rounded px-4 py-2">Ir a pagar</button>
-      </form>
+      <input
+        name="monto"
+        type="number"
+        step="0.01"
+        min="1"
+        placeholder="Monto (ARS)"
+        className="w-full border rounded px-3 py-2"
+        value={form.monto}
+        onChange={onChange}
+        required
+      />
 
-      <p className="text-xs text-gray-500 mt-4">
-        Te vamos a acreditar el saldo cuando GoCuotas confirme el pago (webhook).
-        Si la otra persona paga, el crédito igual se carga en tu cuenta.
+      <div className="text-sm text-gray-600">Si otra persona va a pagar, completá sus datos:</div>
+      <input
+        name="payer_email"
+        type="email"
+        placeholder="Email del pagador (opcional)"
+        className="w-full border rounded px-3 py-2"
+        value={form.payer_email}
+        onChange={onChange}
+      />
+      <input
+        name="payer_phone"
+        type="text"
+        placeholder="Teléfono del pagador (opcional)"
+        className="w-full border rounded px-3 py-2"
+        value={form.payer_phone}
+        onChange={onChange}
+      />
+
+      <button className="w-full bg-black text-white rounded px-4 py-2">Ir a pagar</button>
+
+      <p className="text-xs text-gray-500">
+        El saldo se acredita cuando GoCuotas confirma el pago (webhook).
       </p>
-    </div>
+    </form>
   );
 }

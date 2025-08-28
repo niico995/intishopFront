@@ -1,16 +1,32 @@
-import axios from 'axios';
+import api from './axiosConfig';
 
-export const crearRecarga = async (monto) => {
-  const token = localStorage.getItem('token');
-  const response = await axios.post(
-    'https://intishopback.onrender.com/api/gocuotas/crear-recarga/',
-    { monto },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+/** Inicia una recarga con GoCuotas */
+export async function crearRecarga(monto, extras = {}) {
+  const payload = { monto, ...extras };
+  const { data } = await api.post('clientes/crear-recarga/', payload);
+  return data; // { message, checkout_url }
+}
 
-  return response.data;
-};
+/** Devuelve el saldo disponible (string) */
+export async function verCreditos() {
+  const { data } = await api.get('clientes/ver-creditos/');
+  return data.creditos_disponibles;
+}
+
+/** Historial de recargas del cliente */
+export async function historialRecargas() {
+  const { data } = await api.get('clientes/historial-recargas/');
+  return data;
+}
+
+/** Confirmar compra usando créditos */
+export async function confirmarCompraConCredito(payload) {
+  const { data } = await api.post('clientes/compras/confirmar/', payload);
+  return data; // { message }
+}
+
+/** Carga manual de créditos (para pruebas) */
+export async function cargarCreditoManual(monto) {
+  const { data } = await api.post('clientes/cargar-credito/', { monto });
+  return data;
+}

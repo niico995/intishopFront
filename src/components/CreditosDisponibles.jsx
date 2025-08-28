@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { verCreditos } from '../api/recargarCredito';
+import { obtenerCreditos } from '../api/verCreditos';
 
-export default function CreditosDisponibles() {
+const CreditosDisponibles = () => {
   const [creditos, setCreditos] = useState(null);
 
   useEffect(() => {
     (async () => {
-      try { setCreditos(await verCreditos()); }
+      try { setCreditos(await obtenerCreditos()); }
       catch { setCreditos('Error al cargar'); }
     })();
   }, []);
@@ -17,4 +17,6 @@ export default function CreditosDisponibles() {
       <p className="text-2xl mt-2">{creditos !== null ? `$${creditos}` : 'Cargando...'}</p>
     </div>
   );
-}
+};
+
+export default CreditosDisponibles;

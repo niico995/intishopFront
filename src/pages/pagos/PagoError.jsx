@@ -1,6 +1,5 @@
+// src/pages/pagos/PagoError.jsx
 import { useNavigate, Link } from "react-router-dom";
-
-const DASHBOARD_PATH = "/dashboard-cliente"; // <-- cambialo si tu dashboard es otro
 
 export default function PagoError() {
   const navigate = useNavigate();
@@ -14,13 +13,9 @@ export default function PagoError() {
         </p>
 
         <div className="flex items-center justify-center gap-3">
-          <Link
-            to={DASHBOARD_PATH}
-            className="px-4 py-2 rounded-lg border"
-          >
-            Reintentar en el Dashboard
+          <Link to="/cliente/recargar-credito" className="px-4 py-2 rounded-lg bg-black text-white">
+            Volver a recargar
           </Link>
-
           <button
             onClick={() => navigate(-1)}
             className="px-4 py-2 rounded-lg underline"
