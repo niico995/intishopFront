@@ -1,6 +1,6 @@
 // src/pages/Carrito.jsx
 import { useState } from "react";
-import api from "../api/axiosConfig";
+import axiosInstance from "../api/axiosConfig"; // 👈 tu axios, sin alias raros
 import { useCart } from "../components/CartContext";
 import { alert, toast } from "../utils/notify";
 
@@ -39,7 +39,7 @@ export default function Carrito() {
         usar_creditos: true,
       };
 
-      const { data } = await api.post("ventas/confirmar/", payload);
+      const { data } = await axiosInstance.post("ventas/confirmar/", payload);
       toast("Compra confirmada. Te enviamos los tickets por email.", "success");
 
       if (data?.tickets?.length) {
@@ -70,7 +70,7 @@ export default function Carrito() {
           totalCarrito;
 
         try {
-          const rec = await api.post("clientes/crear-recarga/", {
+          const rec = await axiosInstance.post("clientes/crear-recarga/", {
             monto: diferencia,
             metadata: {
               origen: "checkout",
