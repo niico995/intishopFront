@@ -39,7 +39,7 @@ export default function Carrito() {
         usar_creditos: true,
       };
 
-      const { data } = await axiosInstance.post("clientes/compras/confirmar/", payload);
+      const { data } = await axiosInstance.post("gocuotas/compras/confirmar/", payload);
       toast("Compra confirmada. Te enviamos los tickets por email.", "success");
 
       if (data?.tickets?.length) {
