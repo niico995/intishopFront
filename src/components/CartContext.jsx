@@ -1,5 +1,58 @@
-// src/context/CartContext.jsx
+// // src/context/CartContext.jsx
+// import { createContext, useContext, useEffect, useMemo, useState } from "react";
+
+// const CartContext = createContext();
+
+// export function CartProvider({ children }) {
+//   const [items, setItems] = useState(() => {
+//     try { return JSON.parse(localStorage.getItem("cart") || "[]"); } catch { return []; }
+//   });
+
+//   useEffect(() => {
+//     localStorage.setItem("cart", JSON.stringify(items));
+//   }, [items]);
+
+//   // También reaccionar a cambios en otras pestañas
+//   useEffect(() => {
+//     const onStorage = (e) => {
+//       if (e.key === "cart") {
+//         try { setItems(JSON.parse(e.newValue || "[]")); } catch {}
+//       }
+//     };
+//     window.addEventListener("storage", onStorage);
+//     return () => window.removeEventListener("storage", onStorage);
+//   }, []);
+
+//   const add = (item, qty = 1) => {
+//     setItems(prev => {
+//       const idx = prev.findIndex(x => x.id === item.id);
+//       if (idx >= 0) {
+//         const copy = [...prev];
+//         copy[idx] = { ...copy[idx], qty: copy[idx].qty + qty };
+//         return copy;
+//       }
+//       return [...prev, { ...item, qty }];
+//     });
+//   };
+//   const remove = (id) => setItems(prev => prev.filter(x => x.id !== id));
+//   const updateQty = (id, qty) =>
+//     setItems(prev => prev.map(x => x.id === id ? { ...x, qty: Math.max(1, qty) } : x));
+//   const clear = () => setItems([]);
+
+//   const count = useMemo(() => items.reduce((acc, it) => acc + it.qty, 0), [items]);
+//   const total = useMemo(() => items.reduce((acc, it) => acc + (Number(it.precio) * it.qty), 0), [items]);
+
+//   return (
+//     <CartContext.Provider value={{ items, add, remove, updateQty, clear, count, total }}>
+//       {children}
+//     </CartContext.Provider>
+//   );
+// }
+
+// export const useCart = () => useContext(CartContext);
+// src/components/CartContext.jsx
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { toast } from "../utils/notify";
 
 const CartContext = createContext();
 
@@ -8,11 +61,12 @@ export function CartProvider({ children }) {
     try { return JSON.parse(localStorage.getItem("cart") || "[]"); } catch { return []; }
   });
 
+  // Persistir
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(items));
   }, [items]);
 
-  // También reaccionar a cambios en otras pestañas
+  // Sincronizar entre pestañas
   useEffect(() => {
     const onStorage = (e) => {
       if (e.key === "cart") {
@@ -23,21 +77,47 @@ export function CartProvider({ children }) {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  const add = (item, qty = 1) => {
+  // Agregar
+  const add = (p, qty = 1) => {
+    const q = Math.max(1, Number(qty || 1));
     setItems(prev => {
-      const idx = prev.findIndex(x => x.id === item.id);
-      if (idx >= 0) {
-        const copy = [...prev];
-        copy[idx] = { ...copy[idx], qty: copy[idx].qty + qty };
-        return copy;
+      const i = prev.findIndex(x => x.id === p.id);
+      let next;
+      if (i >= 0) {
+        next = [...prev];
+        next[i] = { ...next[i], qty: next[i].qty + q };
+      } else {
+        next = [...prev, { id: p.id, nombre: p.nombre, precio: Number(p.precio), qty: q, imagen: p.imagen || p.imagenes?.[0]?.url || null }];
       }
-      return [...prev, { ...item, qty }];
+      toast(`+${q} ${p.nombre} al carrito`, 'success');
+      return next;
     });
   };
-  const remove = (id) => setItems(prev => prev.filter(x => x.id !== id));
+
+  // Quitar cantidad (o todo si all=true)
+  const remove = (id, qty = 1, all = false) => {
+    setItems(prev => {
+      const i = prev.findIndex(x => x.id === id);
+      if (i < 0) return prev;
+      const it = prev[i];
+      const toRemove = all ? it.qty : Math.max(1, Number(qty || 1));
+      const newQty = it.qty - toRemove;
+      const next = [...prev];
+      if (newQty <= 0) {
+        next.splice(i, 1);
+        toast(`Quitado todo: ${it.nombre}`, 'info');
+      } else {
+        next[i] = { ...it, qty: newQty };
+        toast(`-${toRemove} ${it.nombre}`, 'info');
+      }
+      return next;
+    });
+  };
+
   const updateQty = (id, qty) =>
-    setItems(prev => prev.map(x => x.id === id ? { ...x, qty: Math.max(1, qty) } : x));
-  const clear = () => setItems([]);
+    setItems(prev => prev.map(x => x.id === id ? { ...x, qty: Math.max(1, Number(qty || 1)) } : x));
+
+  const clear = () => { setItems([]); toast('Carrito vaciado'); };
 
   const count = useMemo(() => items.reduce((acc, it) => acc + it.qty, 0), [items]);
   const total = useMemo(() => items.reduce((acc, it) => acc + (Number(it.precio) * it.qty), 0), [items]);

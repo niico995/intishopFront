@@ -32,9 +32,9 @@ export default function Carrito() {
                     onChange={(e) => updateQty(it.id, Number(e.target.value))}
                     className="w-20 border rounded-md px-2 py-1"
                   />
-                  <button onClick={() => remove(it.id)} className="px-3 py-1.5 rounded-md border hover:bg-gray-50">
-                    Quitar
-                  </button>
+                  <button onClick={() => remove(it.id, it.qty)} className="px-3 py-1.5 rounded-md border hover:bg-gray-50">
+  Quitar
+</button>
                 </div>
               </div>
             ))}

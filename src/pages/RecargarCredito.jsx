@@ -70,11 +70,20 @@ export default function RecargarCredito() {
         ...(form.payer_email ? { payer_email: form.payer_email } : {}),
         ...(form.payer_phone ? { payer_phone: form.payer_phone } : {}),
       };
+
       const { data } = await api.post('gocuotas/crear-recarga/', payload);
-      // Redirigimos al checkout de GoCuotas
+
+      // ✅ Guardamos el monto para mostrarlo en /pago/exito y luego redirigimos
+      try {
+        localStorage.setItem('last_recarga_monto', String(form.monto || ''));
+      } catch {}
+
+      if (!data?.checkout_url) {
+        throw new Error('Checkout URL vacío');
+      }
       window.location.href = data.checkout_url;
     } catch (e) {
-      setErr(e?.response?.data?.error || 'No se pudo iniciar la recarga');
+      setErr(e?.response?.data?.error || e?.message || 'No se pudo iniciar la recarga');
     }
   };
 
@@ -118,8 +127,8 @@ export default function RecargarCredito() {
       </form>
 
       <p className="text-xs text-gray-500 mt-4">
-        Te vamos a acreditar el saldo cuando GoCuotas confirme el pago (webhook). Si la otra persona paga,
-        el crédito igual se carga en tu cuenta.
+        Te vamos a acreditar el saldo cuando GoCuotas confirme el pago (webhook).
+        Si la otra persona paga, el crédito igual se carga en tu cuenta.
       </p>
     </div>
   );

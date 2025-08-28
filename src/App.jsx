@@ -187,6 +187,7 @@ import AdminSociosList from "./pages/admin/AdminSocioList";
 import AdminSocioDetail from "./pages/admin/AdminSocioDetail";
 import AdminSocioForm from "./pages/admin/AdminSocioForm";
 import AdminHomeBanners from "./pages/admin/AdminHomeBanners";
+import AdminMultiplicador from "./pages/admin/AdminMultiplicador";
 
 // Socio
 import SocioLayout from "./pages/SocioLayout";
@@ -199,6 +200,7 @@ import CargarProducto from "./pages/CargarProducto";
 import EditarProducto from "./pages/EditarProducto";
 import ListadoProductos from "./pages/ListadoProductos";
 import BannersSocio from "./pages/BannerSocio";
+import SocioPerfilBancario from "./pages/SocioPerfilBancario";
 
 // Pagos (callbacks GoCuotas)
 import PagoExito from "./pages/pagos/PagoExito";
@@ -277,6 +279,7 @@ function App() {
               <Route path="socios/:id" element={<AdminSocioDetail />} />
               <Route path="pagos/socio/:id" element={<DetallePagos />} />
               <Route path="banners-home" element={<AdminHomeBanners />} />
+              <Route path="config/precios" element={<AdminMultiplicador />} />
             </Route>
 
             {/* ========= SOCIO (sin Navbar) ========= */}
@@ -296,6 +299,7 @@ function App() {
                 <Route path="productos/editar/:id" element={<EditarProducto />} />
                 <Route path="banners" element={<BannersSocio />} />
                 <Route path="*" element={<Navigate to="/socio/productos" replace />} />
+                <Route path="banco" element={<SocioPerfilBancario />} />
               </Route>
             </Route>
 

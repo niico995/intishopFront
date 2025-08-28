@@ -33,6 +33,16 @@ export default function AdminLayout() {
           <NavLink to="/admin/banners-home" className={linkCls}>
             Banners Home
           </NavLink>
+          <li>
+  <NavLink
+    to="/admin/config/precios"
+    className={({ isActive }) =>
+      `block rounded-md px-3 py-2 text-sm ${isActive ? "bg-white/15 text-white" : "text-white/90 hover:bg-white/10"}`
+    }
+  >
+    Multiplicador
+  </NavLink>
+</li>
         </nav>
         <button
           onClick={() => {

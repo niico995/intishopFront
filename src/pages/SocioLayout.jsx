@@ -32,6 +32,7 @@ export default function SocioLayout() {
           <NavLink to="/socio/perfil" className={linkCls}>Editar Perfil</NavLink>
           {/* Nuevo */}
           <NavLink to="/socio/banners" className={linkCls}>Mis Banners</NavLink>
+          <NavLink to="/socio/banco" className={linkCls}>Datos Bancarios</NavLink>
         </nav>
 
         <button
