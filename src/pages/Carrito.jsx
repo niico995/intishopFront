@@ -31,12 +31,14 @@ export default function Carrito() {
   const handleCheckout = async () => {
     if (!items.length || loading) return;
     setLoading(true);
+
     try {
+      // 1) Intentar confirmar con créditos
       const payload = {
         items: items.map((it) => ({ product_id: it.id, cantidad: it.qty })),
         usar_creditos: true,
       };
-      // Importante: ruta relativa (sin barra inicial) para respetar baseURL con /api/
+
       const { data } = await api.post("ventas/confirmar/", payload);
       toast("Compra confirmada. Te enviamos los tickets por email.", "success");
 
@@ -48,20 +50,75 @@ export default function Carrito() {
       }
       clear();
     } catch (e) {
-      console.error(e);
-      const msg =
-        e?.response?.data?.error ||
-        (e?.response?.status === 401
-          ? "Tenés que iniciar sesión para confirmar la compra."
-          : "No se pudo confirmar la compra");
-      toast(msg, "error");
+      // 2) Si NO alcanzan los créditos → crear recarga y redirigir al checkout externo
+      const status = e?.response?.status;
+      const respData = e?.response?.data || {};
+
+      const esSaldoInsuficiente =
+        status === 402 ||
+        respData?.code === "SALDO_INSUFICIENTE" ||
+        respData?.error_code === "saldo_insuficiente" ||
+        respData?.error === "saldo_insuficiente";
+
+      if (esSaldoInsuficiente) {
+        const totalCarrito = items.reduce(
+          (acc, it) => acc + Number(it.precio || 0) * Number(it.qty || 1),
+          0
+        );
+        const diferencia =
+          Number(respData?.faltante ?? respData?.diferencia ?? respData?.monto ?? 0) ||
+          totalCarrito;
+
+        try {
+          const rec = await api.post("clientes/crear-recarga/", {
+            monto: diferencia,
+            metadata: {
+              origen: "checkout",
+              items: items.map((it) => ({
+                product_id: it.id,
+                cantidad: it.qty,
+                precio: Number(it.precio || 0),
+              })),
+              total: totalCarrito,
+            },
+          });
+
+          const paymentUrl =
+            rec?.data?.payment_url || rec?.data?.link || rec?.data?.url;
+
+          if (paymentUrl) {
+            toast("Te redirigimos al pago…", "info");
+            window.location.href = paymentUrl; // 🔁 Checkout externo (GoCuotas)
+            return;
+          }
+
+          toast("El backend no devolvió el link de pago.", "error");
+        } catch (e2) {
+          console.error("Error al crear recarga:", e2);
+          const msg2 =
+            e2?.response?.data?.error ||
+            e2?.message ||
+            "No se pudo crear la recarga";
+          toast(msg2, "error");
+        }
+      } else {
+        // Otros errores (auth, validaciones, etc.)
+        if (status === 401) {
+          toast("Tenés que iniciar sesión para confirmar la compra.", "error");
+        } else {
+          const msg =
+            respData?.error ||
+            respData?.detail ||
+            "No se pudo confirmar la compra";
+          toast(msg, "error");
+        }
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  if (!items.length)
-    return <div className="p-4">Tu carrito está vacío.</div>;
+  if (!items.length) return <div className="p-4">Tu carrito está vacío.</div>;
 
   return (
     <div className="max-w-4xl mx-auto p-4">
@@ -139,7 +196,7 @@ export default function Carrito() {
           Vaciar carrito
         </button>
         <div className="text-lg font-semibold">
-          Total: AR${" "}
+          Total: AR{" "}
           {total.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
         </div>
       </div>
