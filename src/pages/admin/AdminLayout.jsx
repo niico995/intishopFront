@@ -1,4 +1,3 @@
-// src/pages/admin/AdminLayout.jsx
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useState } from "react";
@@ -29,20 +28,14 @@ export default function AdminLayout() {
           <NavLink to="/admin/socios" className={linkCls}>
             Socios
           </NavLink>
-          {/* ✅ Nuevo: Banners Home */}
+          {/* ✅ Banners Home */}
           <NavLink to="/admin/banners-home" className={linkCls}>
             Banners Home
           </NavLink>
-          <li>
-  <NavLink
-    to="/admin/config/precios"
-    className={({ isActive }) =>
-      `block rounded-md px-3 py-2 text-sm ${isActive ? "bg-white/15 text-white" : "text-white/90 hover:bg-white/10"}`
-    }
-  >
-    Multiplicador
-  </NavLink>
-</li>
+          {/* ✅ Nuevo: Multiplicador de precios */}
+          <NavLink to="/admin/config/precios" className={linkCls}>
+            Multiplicador
+          </NavLink>
         </nav>
         <button
           onClick={() => {
@@ -77,7 +70,6 @@ export default function AdminLayout() {
 
       {/* Contenido */}
       <main className="flex-1 md:ml-64 w-full p-4 md:p-6 mt-12 md:mt-0">
-        {/* 👇 SOLO Outlet; NADA de <Routes> ni <Navigate> acá */}
         <Outlet />
       </main>
 
