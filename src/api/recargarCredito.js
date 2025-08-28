@@ -1,13 +1,14 @@
+// src/api/recargarCredito.js
 import api from './axiosConfig';
 
-/** Inicia una recarga con GoCuotas */
+/** Inicia una recarga con GoCuotas y devuelve { message, checkout_url } */
 export async function crearRecarga(monto, extras = {}) {
   const payload = { monto, ...extras };
   const { data } = await api.post('clientes/crear-recarga/', payload);
   return data; // { message, checkout_url }
 }
 
-/** Devuelve el saldo disponible (string) */
+/** Devuelve el saldo disponible (string con 2 decimales) */
 export async function verCreditos() {
   const { data } = await api.get('clientes/ver-creditos/');
   return data.creditos_disponibles;
@@ -25,7 +26,7 @@ export async function confirmarCompraConCredito(payload) {
   return data; // { message }
 }
 
-/** Carga manual de créditos (para pruebas) */
+/** Carga manual de créditos (para pruebas o ajustes internos) */
 export async function cargarCreditoManual(monto) {
   const { data } = await api.post('clientes/cargar-credito/', { monto });
   return data;
