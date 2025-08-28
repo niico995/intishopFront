@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import api from "../../api/axiosConfig";
+import axiosInstance from "../api/axiosConfig";
 import { toast } from "../../utils/notify";
 
+let api = axiosInstance()
 export default function VentasVendedor() {
   const [ventas, setVentas] = useState([]);
 
