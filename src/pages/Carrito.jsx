@@ -33,13 +33,20 @@ export default function Carrito() {
     setLoading(true);
 
     try {
-      // ✅ Ruta correcta: clientes/compras/confirmar/
+      // ✅ Enviar con producto_id y a la ruta correcta
       const payload = {
-        items: items.map((it) => ({ product_id: it.id, cantidad: it.qty })),
+        items: items.map((it) => ({
+          producto_id: it.id,
+          cantidad: it.qty,
+        })),
         usar_creditos: true,
       };
 
-      const { data } = await axiosInstance.post("gocuotas/compras/confirmar/", payload);
+      const { data } = await axiosInstance.post(
+        "gocuotas/compras/confirmar/",
+        payload
+      );
+
       toast("Compra confirmada. Te enviamos los tickets por email.", "success");
 
       if (data?.tickets?.length) {
@@ -74,7 +81,7 @@ export default function Carrito() {
             metadata: {
               origen: "checkout",
               items: items.map((it) => ({
-                product_id: it.id,
+                producto_id: it.id,
                 cantidad: it.qty,
                 precio: Number(it.precio || 0),
               })),
