@@ -43,9 +43,9 @@ export default function Carrito() {
       };
 
       const { data } = await axiosInstance.post(
-        "gocuotas/compras/confirmar/",
-        payload
-      );
+  "ventas/confirmar/",
+  payload
+);
 
       toast("Compra confirmada. Te enviamos los tickets por email.", "success");
 
@@ -76,7 +76,7 @@ export default function Carrito() {
           totalCarrito;
 
         try {
-          const rec = await axiosInstance.post("clientes/crear-recarga/", {
+          const rec = await axiosInstance.post("gocuotas/crear-recarga/", {
             monto: diferencia,
             metadata: {
               origen: "checkout",

@@ -22,7 +22,7 @@ export async function historialRecargas() {
 
 /** Confirmar compra usando créditos -> { message } */
 export async function confirmarCompraConCredito(payload) {
-  const { data } = await api.post('gocuotas/compras/confirmar/', payload);
+  const { data } = await api.post('ventas/confirmar/', payload);
   return data;
 }
 
