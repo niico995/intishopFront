@@ -1,7 +1,7 @@
 // src/pages/MisCompras.jsx
 import { useEffect, useState } from "react";
 import axiosInstance from "../api/axiosConfig";
-import { toast, alert } from "../utils/notify";
+import { toast } from "../utils/notify";
 
 export default function MisCompras() {
   const [compras, setCompras] = useState([]);
@@ -11,7 +11,7 @@ export default function MisCompras() {
   const cargarCompras = async () => {
     setLoading(true);
     try {
-      // ✅ Listado real expuesto por tu router DRF: /api/ventas/
+      // ✅ Listado real: /api/ventas/
       const { data } = await axiosInstance.get("ventas/");
       setCompras(Array.isArray(data) ? data : data?.results || []);
     } catch (e) {
@@ -33,7 +33,7 @@ export default function MisCompras() {
   const marcarRecibida = async (ventaId) => {
     setMarking((s) => ({ ...s, [ventaId]: true }));
     try {
-      // ✅ Acción personalizada en tu ViewSet: /api/ventas/<id>/marcar_recibida/
+      // ✅ Acción personalizada: /api/ventas/<id>/marcar_recibida/
       await axiosInstance.post(`ventas/${ventaId}/marcar_recibida/`);
       toast("Compra marcada como recibida", "success");
       await cargarCompras();
@@ -67,9 +67,7 @@ export default function MisCompras() {
             <div key={c.id} className="border rounded p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium">
-                    #{c.id} · {c.estado || "—"}
-                </div>
+                  <div className="font-medium">#{c.id} · {c.estado || "—"}</div>
                   <div className="text-sm text-gray-600">
                     {c.fecha || c.created_at || c.creada || ""}
                   </div>
