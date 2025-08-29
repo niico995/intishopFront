@@ -1,9 +1,9 @@
-// src/pages/MisCompras.jsx
 import { useEffect, useState } from "react";
 import axiosInstance from "../api/axiosConfig";
 import { toast } from "../utils/notify";
 
 export default function MisCompras() {
+  const api = axiosInstance;
   const [compras, setCompras] = useState([]);
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState({}); // { [ventaId]: true }
@@ -11,16 +11,12 @@ export default function MisCompras() {
   const cargarCompras = async () => {
     setLoading(true);
     try {
-      // Listado real: GET /api/ventas/
-      const { data } = await axiosInstance.get("ventas/");
+      // El backend devuelve ventas del usuario (cliente) por email/user
+      const { data } = await api.get("ventas/");
       setCompras(Array.isArray(data) ? data : data?.results || []);
     } catch (e) {
-      console.error("Error al listar compras:", e);
-      const msg =
-        e?.response?.data?.error ||
-        e?.response?.data?.detail ||
-        "No se pudieron cargar tus compras";
-      toast(msg, "error");
+      console.error(e);
+      toast("No pude cargar tus compras", "error");
     } finally {
       setLoading(false);
     }
@@ -28,95 +24,82 @@ export default function MisCompras() {
 
   useEffect(() => {
     cargarCompras();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const marcarRecibida = async (ventaId) => {
+  const marcarRecibido = async (ventaId) => {
     setMarking((s) => ({ ...s, [ventaId]: true }));
     try {
-      // Acción correcta: POST /api/ventas/<id>/marcar_recibido/
-      await axiosInstance.post(`ventas/${ventaId}/marcar_recibido/`);
-      toast("Compra marcada como recibida", "success");
+      await api.post(`ventas/${ventaId}/marcar_recibido/`);
+      toast("Marcada como recibida", "success");
       await cargarCompras();
     } catch (e) {
-      console.error("Error al marcar recibida:", e);
-      const msg =
-        e?.response?.data?.error ||
-        e?.response?.data?.detail ||
-        "No se pudo marcar como recibida";
-      toast(msg, "error");
+      console.error(e);
+      toast(
+        e?.response?.data?.error || "No se pudo marcar como recibida",
+        "error"
+      );
     } finally {
       setMarking((s) => ({ ...s, [ventaId]: false }));
     }
   };
 
-  if (loading) return <div className="p-4">Cargando compras…</div>;
-  if (!compras.length)
-    return <div className="p-4">No tenés compras registradas.</div>;
-
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h2 className="text-xl font-semibold mb-4">Mis compras</h2>
+    <div className="p-4 max-w-4xl mx-auto">
+      <h2 className="text-xl font-semibold mb-3">Mis compras</h2>
 
-      <div className="grid gap-3">
-        {compras.map((c) => {
-          const precio = Number(c.precio_unitario || 0);
-          const cantidad = Number(c.cantidad || 0);
-          const total = precio * cantidad;
-          const estado = String(c.estado || "").toLowerCase();
-          const puedeMarcar =
-            !c.cliente_recibio && (c.vendedor_entrego || estado === "entregado");
+      <p className="text-xs text-gray-500 mb-4">
+        Recordá: tenés <b>24 horas</b> para retirar en el comercio indicado en
+        el ticket. Luego el pedido puede cancelarse automáticamente.
+      </p>
 
-          return (
-            <div key={c.id} className="border rounded p-3">
-              <div className="flex items-center justify-between">
-                <div>
+      {loading ? (
+        <div className="text-sm text-gray-500">Cargando…</div>
+      ) : compras.length === 0 ? (
+        <div className="text-sm text-gray-600">No tenés compras todavía.</div>
+      ) : (
+        <div className="grid gap-2">
+          {compras.map((v) => {
+            const deshabilitar =
+              v.cliente_recibio ||
+              v.estado === "aprobado" ||
+              v.estado === "cancelada" ||
+              !!marking[v.id];
+
+            return (
+              <div
+                key={v.id}
+                className="border rounded p-3 flex items-center justify-between"
+              >
+                <div className="space-y-1">
                   <div className="font-medium">
-                    #{c.id} · {c.estado || "—"}
+                    {v.producto_nombre || `Producto #${v.producto}`} ×{" "}
+                    {v.cantidad}
                   </div>
                   <div className="text-sm text-gray-600">
-                    {c.fecha_venta || ""}
+                    Estado: <b>{v.estado}</b> — $
+                    {Number(v.precio_unitario).toFixed(2)} c/u
                   </div>
-                  {c.seller_nombre ? (
-                    <div className="text-sm text-gray-600">
-                      Vendedor: {c.seller_nombre}
-                    </div>
-                  ) : null}
+                  <div className="text-xs text-gray-500">
+                    Vendedor: {v.seller_nombre || `#${v.seller}`}
+                  </div>
                 </div>
-                <div className="text-right font-semibold">
-                  Total: AR{" "}
-                  {Number(total || 0).toLocaleString("es-AR", {
-                    minimumFractionDigits: 2,
-                  })}
-                </div>
+                <button
+                  disabled={deshabilitar}
+                  onClick={() => marcarRecibido(v.id)}
+                  className="px-3 py-2 border rounded hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {v.cliente_recibio
+                    ? "Recibida"
+                    : marking[v.id]
+                    ? "Marcando…"
+                    : "Marcar recibida"}
+                </button>
               </div>
-
-              <div className="mt-2 text-sm">
-                <div className="flex justify-between">
-                  <span>{c.producto_nombre || `Producto #${c.producto}`}</span>
-                  <span>
-                    x{cantidad} · AR{" "}
-                    {Number(precio).toLocaleString("es-AR", {
-                      minimumFractionDigits: 2,
-                    })}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-3 flex gap-2">
-                {puedeMarcar && (
-                  <button
-                    onClick={() => marcarRecibida(c.id)}
-                    disabled={!!marking[c.id]}
-                    className="px-3 py-1 rounded bg-green-600 text-white disabled:opacity-60"
-                  >
-                    {marking[c.id] ? "Procesando…" : "Marcar como recibida"}
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
