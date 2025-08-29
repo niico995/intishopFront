@@ -3,10 +3,10 @@ import axiosInstance from "../api/axiosConfig";
 import { toast } from "../utils/notify";
 
 export default function VentasVendedor() {
-  const api = axiosInstance; // instancia, no función
+  const api = axiosInstance;
   const [ventas, setVentas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [marking, setMarking] = useState({}); // { [id]: true }
+  const [marking, setMarking] = useState({});
   const [filtros, setFiltros] = useState({
     estado: "",
     desde: "",
@@ -57,16 +57,16 @@ export default function VentasVendedor() {
   };
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
-      <h2 className="text-xl font-semibold mb-3">Mis ventas</h2>
+    <div className="p-4 max-w-2xl mx-auto">
+      <h1 className="text-lg font-semibold mb-3">Mis ventas</h1>
 
-      <div className="mb-4 grid gap-2 sm:grid-cols-4">
+      <div className="mb-4 grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <select
           value={filtros.estado}
           onChange={(e) => setFiltros((f) => ({ ...f, estado: e.target.value }))}
-          className="border rounded px-2 py-2"
+          className="border rounded px-3 py-2"
         >
-          <option value="">Todos los estados</option>
+          <option value="">Todos</option>
           <option value="pendiente">Pendiente</option>
           <option value="entregado">Entregado por vendedor</option>
           <option value="recibido">Recibido por cliente</option>
@@ -78,13 +78,13 @@ export default function VentasVendedor() {
           type="date"
           value={filtros.desde}
           onChange={(e) => setFiltros((f) => ({ ...f, desde: e.target.value }))}
-          className="border rounded px-2 py-2"
+          className="border rounded px-3 py-2"
         />
         <input
           type="date"
           value={filtros.hasta}
           onChange={(e) => setFiltros((f) => ({ ...f, hasta: e.target.value }))}
-          className="border rounded px-2 py-2"
+          className="border rounded px-3 py-2"
         />
 
         <select
@@ -92,7 +92,7 @@ export default function VentasVendedor() {
           onChange={(e) =>
             setFiltros((f) => ({ ...f, ordering: e.target.value }))
           }
-          className="border rounded px-2 py-2"
+          className="border rounded px-3 py-2"
         >
           <option value="-fecha_venta">Más recientes</option>
           <option value="fecha_venta">Más antiguas</option>
@@ -108,7 +108,7 @@ export default function VentasVendedor() {
       ) : ventas.length === 0 ? (
         <div className="text-sm text-gray-600">No tenés ventas aún.</div>
       ) : (
-        <div className="grid gap-2">
+        <ul className="grid gap-2">
           {ventas.map((v) => {
             const deshabilitar =
               v.vendedor_entrego ||
@@ -117,14 +117,13 @@ export default function VentasVendedor() {
               !!marking[v.id];
 
             return (
-              <div
+              <li
                 key={v.id}
-                className="border rounded p-3 flex items-center justify-between"
+                className="border rounded p-3 flex items-start justify-between gap-3"
               >
                 <div className="space-y-1">
                   <div className="font-medium">
-                    {v.producto_nombre || `Producto #${v.producto}`} ×{" "}
-                    {v.cantidad}
+                    {v.producto_nombre || `Producto #${v.producto}`} × {v.cantidad}
                   </div>
                   <div className="text-sm text-gray-600">
                     Estado: <b>{v.estado}</b> — $
@@ -137,7 +136,7 @@ export default function VentasVendedor() {
                 <button
                   disabled={deshabilitar}
                   onClick={() => entregar(v.id)}
-                  className="px-3 py-2 border rounded hover:bg-gray-50 disabled:opacity-50"
+                  className="px-3 py-2 border rounded w-[9.5rem] text-sm text-center hover:bg-gray-50 disabled:opacity-50"
                 >
                   {v.vendedor_entrego
                     ? "Entregada"
@@ -145,10 +144,10 @@ export default function VentasVendedor() {
                     ? "Marcando…"
                     : "Marcar entregada"}
                 </button>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </div>
   );

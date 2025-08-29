@@ -15,7 +15,7 @@ export default function CargarProducto() {
   const [loadingCats, setLoadingCats] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Precio calculado local (solo display)
+  // Precio calculado local (solo display); el back lo recalcula igual.
   const precioCalculado = useMemo(() => {
     const c = parseFloat((formData.costo || "0").toString().replace(",", "."));
     if (isNaN(c)) return "0.00";
@@ -61,7 +61,7 @@ export default function CargarProducto() {
         nombre: formData.nombre?.trim(),
         descripcion: formData.descripcion?.trim(),
         costo: Number(formData.costo || 0).toFixed(2),
-        // precio NO se envía: lo calcula el backend como costo × 1.50
+        // precio NO se envía; lo calcula el back (costo×1.5)
         costo_envio: Number(formData.costo_envio || 0).toFixed(2),
         stock: Number(formData.stock || 0),
         categorias: formData.categorias,
@@ -135,7 +135,7 @@ export default function CargarProducto() {
               placeholder="0.00"
             />
             <p className="text-[11px] text-gray-500">
-              El sistema calcula automáticamente el <b>precio de venta</b> como <b>costo × 1.5</b>.
+              El sistema calcula el <b>precio</b> como <b>costo × 1.5</b>.
             </p>
           </div>
 
@@ -147,7 +147,7 @@ export default function CargarProducto() {
               readOnly
               tabIndex={-1}
             />
-            <p className="text-[11px] text-gray-500">Este es el precio final que verá el cliente.</p>
+            <p className="text-[11px] text-gray-500">Precio final mostrado al cliente.</p>
           </div>
         </div>
 
