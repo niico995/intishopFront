@@ -1,614 +1,219 @@
-// import { useEffect, useState } from 'react';
-// import axios from '../api/axiosConfig';
+import { useEffect, useMemo, useState } from "react";
+import axios from "../api/axiosConfig";
+import { toast } from "../utils/notify";
 
-// const MAX_MB = 5;
-
-// const CargarProducto = () => {
-//   const [formData, setFormData] = useState({
-//     nombre: '',
-//     descripcion: '',
-//     precio: '',
-//     stock: '',
-//     categorias: [],
-//   });
-
-//   const [nuevaCategoria, setNuevaCategoria] = useState('');
-//   const [categorias, setCategorias] = useState([]);
-//   const [mensaje, setMensaje] = useState('');
-//   const [error, setError] = useState('');
-
-//   // imágenes webp seleccionadas (una o varias)
-//   const [files, setFiles] = useState([]);            // File[]
-//   const [previews, setPreviews] = useState([]);      // object URLs
-
-//   useEffect(() => {
-//     getCategorias();
-//     return () => previews.forEach(url => URL.revokeObjectURL(url));
-//     // eslint-disable-next-line react-hooks/exhaustive-deps
-//   }, []);
-
-//   const getCategorias = async () => {
-//     try {
-//       const res = await axios.get('products/categorias/');
-//       setCategorias(res.data);
-//     } catch (err) {
-//       console.error(err);
-//       setError('Error al cargar las categorías');
-//     }
-//   };
-
-//   const handleChange = (e) => {
-//     const { name, value } = e.target;
-//     setFormData(prev => ({ ...prev, [name]: value }));
-//   };
-
-//   const handleCheckbox = (id) => {
-//     setFormData(prev => {
-//       const seleccionadas = prev.categorias.includes(id)
-//         ? prev.categorias.filter(cat => cat !== id)
-//         : [...prev.categorias, id];
-//       return { ...prev, categorias: seleccionadas };
-//     });
-//   };
-
-//   // ---- IMÁGENES SOLO WEBP (múltiples) ----
-//   const validateAndSetFiles = (fileList) => {
-//     setMensaje('');
-//     setError('');
-
-//     const maxBytes = MAX_MB * 1024 * 1024;
-//     const incoming = Array.from(fileList || []);
-//     const valid = [];
-//     const newPreviews = [];
-
-//     for (const f of incoming) {
-//       const isWebpMime = f.type === 'image/webp';
-//       const isWebpExt = /\.webp$/i.test(f.name);
-//       if (!isWebpMime || !isWebpExt) {
-//         setError('Solo se permiten imágenes .webp');
-//         return;
-//       }
-//       if (f.size > maxBytes) {
-//         setError(`Una imagen supera los ${MAX_MB} MB`);
-//         return;
-//       }
-//     }
-
-//     // ok, son todas válidas
-//     // limpiar previews anteriores
-//     previews.forEach(url => URL.revokeObjectURL(url));
-
-//     incoming.forEach(f => {
-//       valid.push(f);
-//       newPreviews.push(URL.createObjectURL(f));
-//     });
-
-//     setFiles(valid);
-//     setPreviews(newPreviews);
-//   };
-
-//   const onFileInputChange = (e) => {
-//     validateAndSetFiles(e.target.files);
-//   };
-
-//   const onDrop = (e) => {
-//     e.preventDefault();
-//     validateAndSetFiles(e.dataTransfer.files);
-//   };
-
-//   const onDragOver = (e) => e.preventDefault();
-
-//   const clearImages = () => {
-//     files.length && previews.forEach(url => URL.revokeObjectURL(url));
-//     setFiles([]);
-//     setPreviews([]);
-//   };
-
-//   const crearCategoria = async () => {
-//     if (!nuevaCategoria.trim()) return;
-
-//     try {
-//       const res = await axios.post('products/categorias/crear/', {
-//         nombre: nuevaCategoria,
-//       });
-
-//       setCategorias(prev => [...prev, { id: res.data.id, nombre: res.data.nombre }]);
-//       setFormData(prev => ({ ...prev, categorias: [...prev.categorias, res.data.id] }));
-//       setNuevaCategoria('');
-//     } catch (err) {
-//       console.error('Error creando categoría:', err);
-//       setError('No se pudo crear la categoría');
-//     }
-//   };
-
-//   // Subida de imágenes a /products/imagenes/subir/
-//   const uploadImages = async (productId) => {
-//     if (!files.length) return;
-
-//     const fd = new FormData();
-//     fd.append('product', productId);
-//     files.forEach(f => fd.append('files', f)); // el backend usa getlist("files")
-
-//     await axios.post('products/imagenes/subir/', fd, {
-//       headers: { 'Content-Type': 'multipart/form-data' },
-//     });
-//   };
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     setMensaje('');
-//     setError('');
-
-//     try {
-//       // 1) Crear producto (JSON). categorias como array de IDs.
-//       const payload = {
-//         nombre: formData.nombre,
-//         descripcion: formData.descripcion,
-//         precio: formData.precio,
-//         stock: formData.stock,
-//         categorias: formData.categorias,
-//       };
-
-//       const res = await axios.post('products/crear/', payload); // <-- JSON, no multipart
-//       const productId = res.data?.id;
-
-//       // 2) Si hay imágenes, subirlas ahora (solo webp)
-//       if (productId) {
-//         await uploadImages(productId);
-//       }
-
-//       setMensaje('Producto creado correctamente');
-//       setFormData({ nombre: '', descripcion: '', precio: '', stock: '', categorias: [] });
-//       clearImages();
-//     } catch (err) {
-//       console.error(err);
-//       // si el backend devuelve errores del serializer, mostralos
-//       const apiErr = err?.response?.data;
-//       setError(
-//         typeof apiErr === 'string'
-//           ? apiErr
-//           : 'Error al crear el producto'
-//       );
-//     }
-//   };
-
-//   return (
-//     <div style={{ maxWidth: 640, margin: '0 auto', padding: 20 }}>
-//       <h2 style={{ textAlign: 'center', marginBottom: 20, fontSize: '32px' }}>Cargar Producto</h2>
-
-//       {mensaje && <p style={{ color: 'green', textAlign: 'center' }}>{mensaje}</p>}
-//       {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
-
-//       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-//         <label>Nombre:</label>
-//         <input
-//           type="text"
-//           name="nombre"
-//           value={formData.nombre}
-//           onChange={handleChange}
-//           required
-//           style={{ padding: 8, borderRadius: 5, border: '1px solid #ccc' }}
-//         />
-
-//         <label>Descripción:</label>
-//         <textarea
-//           name="descripcion"
-//           value={formData.descripcion}
-//           onChange={handleChange}
-//           required
-//           rows={4}
-//           style={{ padding: 8, borderRadius: 5, border: '1px solid #ccc' }}
-//         />
-
-//         <label>Precio:</label>
-//         <input
-//           type="number"
-//           name="precio"
-//           value={formData.precio}
-//           onChange={handleChange}
-//           required
-//           style={{ padding: 8, borderRadius: 5, border: '1px solid #ccc' }}
-//         />
-
-//         <label>Stock:</label>
-//         <input
-//           type="number"
-//           name="stock"
-//           value={formData.stock}
-//           onChange={handleChange}
-//           required
-//           style={{ padding: 8, borderRadius: 5, border: '1px solid #ccc' }}
-//         />
-
-//         <label>Categorías:</label>
-//         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-//           {categorias.map(cat => (
-//             <label key={cat.id} style={{ fontSize: 14 }}>
-//               <input
-//                 type="checkbox"
-//                 checked={formData.categorias.includes(cat.id)}
-//                 onChange={() => handleCheckbox(cat.id)}
-//                 style={{ marginRight: 5 }}
-//               />
-//               {cat.nombre}
-//             </label>
-//           ))}
-//         </div>
-
-//         <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-//           <input
-//             type="text"
-//             value={nuevaCategoria}
-//             onChange={(e) => setNuevaCategoria(e.target.value)}
-//             placeholder="Nueva categoría"
-//             style={{ flex: 1, padding: 8, borderRadius: 5, border: '1px solid #ccc' }}
-//           />
-//           <button type="button" onClick={crearCategoria} style={{ padding: 8 }}>Agregar</button>
-//         </div>
-
-//         {/* ---- Imágenes (solo .webp) ---- */}
-//         <label style={{ marginTop: 10 }}>Imágenes (solo .webp):</label>
-//         <input
-//           type="file"
-//           accept="image/webp"
-//           multiple
-//           onChange={onFileInputChange}
-//           style={{ padding: 8, borderRadius: 5, border: '1px solid #ccc' }}
-//         />
-
-//         <div
-//           onDrop={onDrop}
-//           onDragOver={onDragOver}
-//           style={{
-//             marginTop: 8,
-//             padding: 16,
-//             border: '2px dashed #ccc',
-//             borderRadius: 8,
-//             textAlign: 'center',
-//             fontSize: 14
-//           }}
-//         >
-//           Arrastrá y soltá tus .webp acá
-//           {previews.length > 0 && (
-//             <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
-//               {previews.map((src, i) => (
-//                 <img key={i} src={src} alt={`Preview ${i}`} style={{ width: '100%', borderRadius: 6, objectFit: 'cover' }} />
-//               ))}
-//               <button
-//                 type="button"
-//                 onClick={clearImages}
-//                 style={{ gridColumn: '1 / -1', marginTop: 8, padding: '6px 10px', borderRadius: 6, border: '1px solid #ccc', background: '#fafafa' }}
-//               >
-//                 Quitar todas
-//               </button>
-//             </div>
-//           )}
-//         </div>
-
-//         <button
-//           type="submit"
-//           style={{
-//             marginTop: 20,
-//             padding: 10,
-//             backgroundColor: '#007bff',
-//             color: '#fff',
-//             border: 'none',
-//             borderRadius: 5,
-//             cursor: 'pointer',
-//           }}
-//         >
-//           Cargar
-//         </button>
-//       </form>
-//     </div>
-//   );
-// };
-
-// export default CargarProducto;
-import { useEffect, useState } from 'react';
-import axios from '../api/axiosConfig';
-
-const MAX_MB = 5;
-
-const CargarProducto = () => {
+export default function CargarProducto() {
   const [formData, setFormData] = useState({
-    nombre: '',
-    descripcion: '',
-    precio: '',
-    stock: '',
-    categorias: [],
+    nombre: "",
+    descripcion: "",
+    costo: "",
+    costo_envio: "",
+    stock: "",
+    categorias: [], // IDs
   });
-
-  const [nuevaCategoria, setNuevaCategoria] = useState('');
   const [categorias, setCategorias] = useState([]);
-  const [mensaje, setMensaje] = useState('');
-  const [error, setError] = useState('');
+  const [loadingCats, setLoadingCats] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  // imágenes webp seleccionadas (una o varias)
-  const [files, setFiles] = useState([]);            // File[]
-  const [previews, setPreviews] = useState([]);      // object URLs
+  // Precio calculado local (solo display)
+  const precioCalculado = useMemo(() => {
+    const c = parseFloat((formData.costo || "0").toString().replace(",", "."));
+    if (isNaN(c)) return "0.00";
+    return (c * 1.5).toFixed(2);
+  }, [formData.costo]);
 
   useEffect(() => {
+    const getCategorias = async () => {
+      setLoadingCats(true);
+      try {
+        const res = await axios.get("products/categorias/");
+        setCategorias(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error(err);
+        toast("Error al cargar las categorías", "error");
+      } finally {
+        setLoadingCats(false);
+      }
+    };
     getCategorias();
-    return () => previews.forEach(url => URL.revokeObjectURL(url));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const getCategorias = async () => {
-    try {
-      const res = await axios.get('products/categorias/');
-      setCategorias(res.data);
-    } catch (err) {
-      console.error(err);
-      setError('Error al cargar las categorías');
-    }
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleCheckbox = (id) => {
-    setFormData(prev => {
-      const seleccionadas = prev.categorias.includes(id)
-        ? prev.categorias.filter(cat => cat !== id)
-        : [...prev.categorias, id];
-      return { ...prev, categorias: seleccionadas };
-    });
-  };
-
-  // ---- IMÁGENES SOLO WEBP (múltiples) ----
-  const validateAndSetFiles = (fileList) => {
-    setMensaje('');
-    setError('');
-
-    const maxBytes = MAX_MB * 1024 * 1024;
-    const incoming = Array.from(fileList || []);
-    const valid = [];
-    const newPreviews = [];
-
-    for (const f of incoming) {
-      const isWebpMime = f.type === 'image/webp';
-      const isWebpExt = /\.webp$/i.test(f.name);
-      if (!isWebpMime || !isWebpExt) {
-        setError('Solo se permiten imágenes .webp');
-        return;
-      }
-      if (f.size > maxBytes) {
-        setError(`Una imagen supera los ${MAX_MB} MB`);
-        return;
-      }
+    let val = value;
+    if (name === "costo" || name === "costo_envio") {
+      val = value.replace(",", ".");
     }
-
-    // ok, son todas válidas
-    // limpiar previews anteriores
-    previews.forEach(url => URL.revokeObjectURL(url));
-
-    incoming.forEach(f => {
-      valid.push(f);
-      newPreviews.push(URL.createObjectURL(f));
-    });
-
-    setFiles(valid);
-    setPreviews(newPreviews);
+    setFormData((prev) => ({ ...prev, [name]: val }));
   };
 
-  const onFileInputChange = (e) => {
-    validateAndSetFiles(e.target.files);
+  const handleCategorias = (e) => {
+    const opts = Array.from(e.target.selectedOptions);
+    const values = opts.map((o) => Number(o.value));
+    setFormData((prev) => ({ ...prev, categorias: values }));
   };
 
-  const onDrop = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    validateAndSetFiles(e.dataTransfer.files);
-  };
-
-  const onDragOver = (e) => e.preventDefault();
-
-  const clearImages = () => {
-    files.length && previews.forEach(url => URL.revokeObjectURL(url));
-    setFiles([]);
-    setPreviews([]);
-  };
-
-  const crearCategoria = async () => {
-    if (!nuevaCategoria.trim()) return;
-
+    setSubmitting(true);
     try {
-      const res = await axios.post('products/categorias/crear/', {
-        nombre: nuevaCategoria,
-      });
-
-      setCategorias(prev => [...prev, { id: res.data.id, nombre: res.data.nombre }]);
-      setFormData(prev => ({ ...prev, categorias: [...prev.categorias, res.data.id] }));
-      setNuevaCategoria('');
-    } catch (err) {
-      console.error('Error creando categoría:', err);
-      setError('No se pudo crear la categoría');
-    }
-  };
-
-  // Subida de imágenes a /products/imagenes/subir/
-  const uploadImages = async (productId) => {
-    if (!files.length) return;
-
-    const fd = new FormData();
-    fd.append('product', productId);
-    files.forEach(f => fd.append('files', f)); // el backend usa getlist("files")
-
-    await axios.post('products/imagenes/subir/', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMensaje('');
-    setError('');
-
-    try {
-      // 1) Crear producto (JSON). categorias como array de IDs.
       const payload = {
-        nombre: formData.nombre,
-        descripcion: formData.descripcion,
-        precio: formData.precio,
-        stock: formData.stock,
+        nombre: formData.nombre?.trim(),
+        descripcion: formData.descripcion?.trim(),
+        costo: Number(formData.costo || 0).toFixed(2),
+        // precio NO se envía: lo calcula el backend como costo × 1.50
+        costo_envio: Number(formData.costo_envio || 0).toFixed(2),
+        stock: Number(formData.stock || 0),
         categorias: formData.categorias,
       };
 
-      const res = await axios.post('products/crear/', payload); // <-- JSON, no multipart
-      const productId = res.data?.id;
+      await axios.post("products/crear/", payload);
+      toast("Producto creado con éxito", "success");
 
-      // 2) Si hay imágenes, subirlas ahora (solo webp)
-      if (productId) {
-        await uploadImages(productId);
-      }
-
-      setMensaje('Producto creado correctamente');
-      setFormData({ nombre: '', descripcion: '', precio: '', stock: '', categorias: [] });
-      clearImages();
+      setFormData({
+        nombre: "",
+        descripcion: "",
+        costo: "",
+        costo_envio: "",
+        stock: "",
+        categorias: [],
+      });
     } catch (err) {
       console.error(err);
-      // si el backend devuelve errores del serializer, mostralos
-      const apiErr = err?.response?.data;
-      setError(
-        typeof apiErr === 'string'
-          ? apiErr
-          : 'Error al crear el producto'
-      );
+      const msg =
+        err?.response?.data?.error ||
+        err?.response?.data?.detail ||
+        "No se pudo crear el producto";
+      toast(msg, "error");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto', padding: 20 }}>
-      <h2 style={{ textAlign: 'center', marginBottom: 20, fontSize: '32px' }}>Cargar Producto</h2>
+    <div className="p-4 max-w-2xl mx-auto">
+      <h1 className="text-lg font-semibold mb-3">Cargar producto</h1>
 
-      {mensaje && <p style={{ color: 'green', textAlign: 'center' }}>{mensaje}</p>}
-      {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
-
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <label>Nombre:</label>
-        <input
-          type="text"
-          name="nombre"
-          value={formData.nombre}
-          onChange={handleChange}
-          required
-          style={{ padding: 8, borderRadius: 5, border: '1px solid #ccc' }}
-        />
-
-        <label>Descripción:</label>
-        <textarea
-          name="descripcion"
-          value={formData.descripcion}
-          onChange={handleChange}
-          required
-          rows={4}
-          style={{ padding: 8, borderRadius: 5, border: '1px solid #ccc' }}
-        />
-
-        <label>Precio:</label>
-        <input
-          type="number"
-          name="precio"
-          value={formData.precio}
-          onChange={handleChange}
-          required
-          style={{ padding: 8, borderRadius: 5, border: '1px solid #ccc' }}
-        />
-
-        <label>Stock:</label>
-        <input
-          type="number"
-          name="stock"
-          value={formData.stock}
-          onChange={handleChange}
-          required
-          style={{ padding: 8, borderRadius: 5, border: '1px solid #ccc' }}
-        />
-
-        <label>Categorías:</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-          {categorias.map(cat => (
-            <label key={cat.id} style={{ fontSize: 14 }}>
-              <input
-                type="checkbox"
-                checked={formData.categorias.includes(cat.id)}
-                onChange={() => handleCheckbox(cat.id)}
-                style={{ marginRight: 5 }}
-              />
-              {cat.nombre}
-            </label>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+      <form onSubmit={onSubmit} className="grid gap-3">
+        <div className="grid gap-2">
+          <label className="text-sm font-medium">Nombre</label>
           <input
-            type="text"
-            value={nuevaCategoria}
-            onChange={(e) => setNuevaCategoria(e.target.value)}
-            placeholder="Nueva categoría"
-            style={{ flex: 1, padding: 8, borderRadius: 5, border: '1px solid #ccc' }}
+            name="nombre"
+            value={formData.nombre}
+            onChange={handleChange}
+            className="border rounded px-3 py-2 w-full"
+            required
+            inputMode="text"
+            placeholder="Ej.: Filtro de aceite XYZ"
           />
-          <button type="button" onClick={crearCategoria} style={{ padding: 8 }}>Agregar</button>
         </div>
 
-        {/* ---- Imágenes (solo .webp) ---- */}
-        <label style={{ marginTop: 10 }}>Imágenes (solo .webp):</label>
-        <input
-          type="file"
-          accept="image/webp"
-          multiple
-          onChange={onFileInputChange}
-          style={{ padding: 8, borderRadius: 5, border: '1px solid #ccc' }}
-        />
+        <div className="grid gap-2">
+          <label className="text-sm font-medium">Descripción</label>
+          <textarea
+            name="descripcion"
+            value={formData.descripcion}
+            onChange={handleChange}
+            className="border rounded px-3 py-2 w-full min-h-28"
+            required
+            placeholder="Detalles, compatibilidades, etc."
+          />
+        </div>
 
-        <div
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          style={{
-            marginTop: 8,
-            padding: 16,
-            border: '2px dashed #ccc',
-            borderRadius: 8,
-            textAlign: 'center',
-            fontSize: 14
-          }}
-        >
-          Arrastrá y soltá tus .webp acá
-          {previews.length > 0 && (
-            <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
-              {previews.map((src, i) => (
-                <img key={i} src={src} alt={`Preview ${i}`} style={{ width: '100%', borderRadius: 6, objectFit: 'cover' }} />
-              ))}
-              <button
-                type="button"
-                onClick={clearImages}
-                style={{ gridColumn: '1 / -1', marginTop: 8, padding: '6px 10px', borderRadius: 6, border: '1px solid #ccc', background: '#fafafa' }}
-              >
-                Quitar todas
-              </button>
-            </div>
-          )}
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Costo (ingresá vos)</label>
+            <input
+              name="costo"
+              type="number"
+              step="0.01"
+              value={formData.costo}
+              onChange={handleChange}
+              className="border rounded px-3 py-2 w-full"
+              required
+              inputMode="decimal"
+              placeholder="0.00"
+            />
+            <p className="text-[11px] text-gray-500">
+              El sistema calcula automáticamente el <b>precio de venta</b> como <b>costo × 1.5</b>.
+            </p>
+          </div>
+
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Precio (auto)</label>
+            <input
+              value={precioCalculado}
+              className="border rounded px-3 py-2 w-full bg-gray-50"
+              readOnly
+              tabIndex={-1}
+            />
+            <p className="text-[11px] text-gray-500">Este es el precio final que verá el cliente.</p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Costo de envío</label>
+            <input
+              name="costo_envio"
+              type="number"
+              step="0.01"
+              value={formData.costo_envio}
+              onChange={handleChange}
+              className="border rounded px-3 py-2 w-full"
+              inputMode="decimal"
+              placeholder="0.00"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Stock</label>
+            <input
+              name="stock"
+              type="number"
+              min="0"
+              value={formData.stock}
+              onChange={handleChange}
+              className="border rounded px-3 py-2 w-full"
+              inputMode="numeric"
+              placeholder="0"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-2">
+          <label className="text-sm font-medium">Categorías</label>
+          <select
+            multiple
+            value={formData.categorias}
+            onChange={handleCategorias}
+            className="border rounded px-3 py-2 w-full"
+          >
+            {loadingCats ? (
+              <option>Cargando…</option>
+            ) : categorias.length === 0 ? (
+              <option disabled>No hay categorías</option>
+            ) : (
+              categorias.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))
+            )}
+          </select>
+          <p className="text-[11px] text-gray-500">
+            En móvil: tocá y arrastrá para seleccionar varias (o mantené presionado).
+          </p>
         </div>
 
         <button
           type="submit"
-          style={{
-            marginTop: 20,
-            padding: 10,
-            backgroundColor: '#007bff',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 5,
-            cursor: 'pointer',
-          }}
+          disabled={submitting}
+          className="px-4 py-2 border rounded w-full sm:w-auto hover:bg-gray-50 disabled:opacity-50"
         >
-          Cargar
+          {submitting ? "Guardando…" : "Guardar producto"}
         </button>
       </form>
     </div>
   );
-};
-
-export default CargarProducto;
+}
