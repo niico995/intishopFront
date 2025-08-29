@@ -11,7 +11,7 @@ export default function MisCompras() {
   const cargarCompras = async () => {
     setLoading(true);
     try {
-      // ✅ Listado real: /api/ventas/
+      // Listado real: GET /api/ventas/
       const { data } = await axiosInstance.get("ventas/");
       setCompras(Array.isArray(data) ? data : data?.results || []);
     } catch (e) {
@@ -33,8 +33,8 @@ export default function MisCompras() {
   const marcarRecibida = async (ventaId) => {
     setMarking((s) => ({ ...s, [ventaId]: true }));
     try {
-      // ✅ Acción personalizada: /api/ventas/<id>/marcar_recibida/
-      await axiosInstance.post(`ventas/${ventaId}/marcar_recibida/`);
+      // Acción correcta: POST /api/ventas/<id>/marcar_recibido/
+      await axiosInstance.post(`ventas/${ventaId}/marcar_recibido/`);
       toast("Compra marcada como recibida", "success");
       await cargarCompras();
     } catch (e) {
@@ -59,47 +59,51 @@ export default function MisCompras() {
 
       <div className="grid gap-3">
         {compras.map((c) => {
-          const items = c.items || c.detalle || [];
+          const precio = Number(c.precio_unitario || 0);
+          const cantidad = Number(c.cantidad || 0);
+          const total = precio * cantidad;
           const estado = String(c.estado || "").toLowerCase();
-          const puedeMarcarRecibida = estado === "entregada";
+          const puedeMarcar =
+            !c.cliente_recibio && (c.vendedor_entrego || estado === "entregado");
 
           return (
             <div key={c.id} className="border rounded p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium">#{c.id} · {c.estado || "—"}</div>
-                  <div className="text-sm text-gray-600">
-                    {c.fecha || c.created_at || c.creada || ""}
+                  <div className="font-medium">
+                    #{c.id} · {c.estado || "—"}
                   </div>
+                  <div className="text-sm text-gray-600">
+                    {c.fecha_venta || ""}
+                  </div>
+                  {c.seller_nombre ? (
+                    <div className="text-sm text-gray-600">
+                      Vendedor: {c.seller_nombre}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="text-right font-semibold">
                   Total: AR{" "}
-                  {Number(c.total || 0).toLocaleString("es-AR", {
+                  {Number(total || 0).toLocaleString("es-AR", {
                     minimumFractionDigits: 2,
                   })}
                 </div>
               </div>
 
-              {items.length ? (
-                <div className="mt-2 text-sm">
-                  {items.map((it, i) => (
-                    <div key={i} className="flex justify-between">
-                      <span>
-                        {it.nombre ||
-                          it.producto_nombre ||
-                          `Prod ${it.producto_id || it.id}`}
-                      </span>
-                      <span>
-                        x{it.cantidad} · AR{" "}
-                        {Number(it.precio || 0).toLocaleString("es-AR")}
-                      </span>
-                    </div>
-                  ))}
+              <div className="mt-2 text-sm">
+                <div className="flex justify-between">
+                  <span>{c.producto_nombre || `Producto #${c.producto}`}</span>
+                  <span>
+                    x{cantidad} · AR{" "}
+                    {Number(precio).toLocaleString("es-AR", {
+                      minimumFractionDigits: 2,
+                    })}
+                  </span>
                 </div>
-              ) : null}
+              </div>
 
               <div className="mt-3 flex gap-2">
-                {puedeMarcarRecibida && (
+                {puedeMarcar && (
                   <button
                     onClick={() => marcarRecibida(c.id)}
                     disabled={!!marking[c.id]}
