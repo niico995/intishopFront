@@ -1,218 +1,229 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "../api/axiosConfig";
-import { toast } from "../utils/notify";
+import axiosInstance from "../api/axiosConfig";
+let toast;
+try { toast = (await import("../utils/notify")).toast; } catch { toast = (m)=>alert(m); }
+
+const initialForm = {
+  nombre: "",
+  descripcion: "",
+  precio_minorista: "",
+  precio_mayorista: "",
+  proveedor: "",
+  stock: "",
+  categorias: [],
+  envio_modo: "unidad",       // "unidad" | "bulto"
+  unidad_peso_kg: "",
+  unidad_vol_dm3: "",
+  bulto_unidades: "",
+  bulto_peso_kg: "",
+  bulto_vol_dm3: "",
+};
 
 export default function CargarProducto() {
-  const [formData, setFormData] = useState({
-    nombre: "",
-    descripcion: "",
-    costo: "",
-    costo_envio: "",
-    stock: "",
-    categorias: [], // IDs
-  });
-  const [categorias, setCategorias] = useState([]);
-  const [loadingCats, setLoadingCats] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-
-  // Precio calculado local (solo display); el back lo recalcula igual.
-  const precioCalculado = useMemo(() => {
-    const c = parseFloat((formData.costo || "0").toString().replace(",", "."));
-    if (isNaN(c)) return "0.00";
-    return (c * 1.5).toFixed(2);
-  }, [formData.costo]);
+  const [form, setForm] = useState(initialForm);
+  const [cats, setCats] = useState([]);
+  const [imagenes, setImagenes] = useState([]);      // File[]
+  const [subiendo, setSubiendo] = useState(false);
 
   useEffect(() => {
-    const getCategorias = async () => {
-      setLoadingCats(true);
+    (async () => {
       try {
-        const res = await axios.get("products/categorias/");
-        setCategorias(Array.isArray(res.data) ? res.data : []);
-      } catch (err) {
-        console.error(err);
-        toast("Error al cargar las categorías", "error");
-      } finally {
-        setLoadingCats(false);
+        const { data } = await axiosInstance.get("products/categorias/");
+        setCats(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error(e);
+        toast("No pude cargar categorías");
       }
-    };
-    getCategorias();
+    })();
   }, []);
 
-  const handleChange = (e) => {
+  const previews = useMemo(
+    () => imagenes.map(f => ({ name: f.name, url: URL.createObjectURL(f) })),
+    [imagenes]
+  );
+
+  const onChange = (e) => {
     const { name, value } = e.target;
-    let val = value;
-    if (name === "costo" || name === "costo_envio") {
-      val = value.replace(",", ".");
+    setForm((p) => ({ ...p, [name]: value }));
+  };
+
+  const onSelectCats = (e) => {
+    const values = Array.from(e.target.selectedOptions).map(o => Number(o.value));
+    setForm(p => ({ ...p, categorias: values }));
+  };
+
+  const onFiles = (e) => {
+    const files = Array.from(e.target.files || []);
+    setImagenes(files);
+  };
+
+  const validar = () => {
+    if (!form.nombre?.trim()) return "Ingresá un nombre";
+    if (!form.precio_minorista) return "Precio minorista requerido";
+    if (!form.stock && form.stock !== 0) return "Stock requerido";
+    if (!form.categorias?.length) return "Seleccioná al menos una categoría";
+
+    if (form.envio_modo === "unidad") {
+      if (form.unidad_peso_kg === "") return "Peso por unidad requerido";
+      if (form.unidad_vol_dm3 === "") return "Volumen por unidad requerido";
+    } else {
+      if (!form.bulto_unidades) return "Unidades por bulto requerido";
+      if (form.bulto_peso_kg === "") return "Peso por bulto requerido";
+      if (form.bulto_vol_dm3 === "") return "Volumen por bulto requerido";
     }
-    setFormData((prev) => ({ ...prev, [name]: val }));
+    return null;
   };
 
-  const handleCategorias = (e) => {
-    const opts = Array.from(e.target.selectedOptions);
-    const values = opts.map((o) => Number(o.value));
-    setFormData((prev) => ({ ...prev, categorias: values }));
-  };
-
-  const onSubmit = async (e) => {
+  const crear = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
+    const err = validar();
+    if (err) return toast(err);
+
+    setSubiendo(true);
     try {
-      const payload = {
-        nombre: formData.nombre?.trim(),
-        descripcion: formData.descripcion?.trim(),
-        costo: Number(formData.costo || 0).toFixed(2),
-        // precio NO se envía; lo calcula el back (costo×1.5)
-        costo_envio: Number(formData.costo_envio || 0).toFixed(2),
-        stock: Number(formData.stock || 0),
-        categorias: formData.categorias,
-      };
-
-      await axios.post("products/crear/", payload);
-      toast("Producto creado con éxito", "success");
-
-      setFormData({
-        nombre: "",
-        descripcion: "",
-        costo: "",
-        costo_envio: "",
-        stock: "",
-        categorias: [],
+      const fd = new FormData();
+      // Campos simples
+      ["nombre","descripcion","precio_minorista","precio_mayorista","proveedor","stock","envio_modo",
+       "unidad_peso_kg","unidad_vol_dm3","bulto_unidades","bulto_peso_kg","bulto_vol_dm3"
+      ].forEach(k => {
+        if (form[k] !== "" && form[k] !== null && form[k] !== undefined) {
+          fd.append(k, form[k]);
+        }
       });
-    } catch (err) {
-      console.error(err);
-      const msg =
-        err?.response?.data?.error ||
-        err?.response?.data?.detail ||
-        "No se pudo crear el producto";
-      toast(msg, "error");
+      // Categorías (múltiple)
+      form.categorias.forEach(id => fd.append("categorias", id));
+
+      // 1) Crear producto
+      const { data: producto } = await axiosInstance.post("products/productos/", fd);
+
+      // 2) Subir imágenes si hay
+      if (imagenes.length) {
+        const fdImg = new FormData();
+        imagenes.forEach(f => fdImg.append("imagenes", f));
+        await axiosInstance.post(`products/productos/${producto.id}/subir_imagenes/`, fdImg, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }
+
+      toast("Producto creado con éxito");
+      setForm(initialForm);
+      setImagenes([]);
+    } catch (e) {
+      console.error(e);
+      toast(e?.response?.data?.error || "No se pudo crear el producto");
     } finally {
-      setSubmitting(false);
+      setSubiendo(false);
     }
   };
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <h1 className="text-lg font-semibold mb-3">Cargar producto</h1>
+    <div className="max-w-3xl mx-auto p-4 space-y-6">
+      <h1 className="text-2xl font-semibold">Cargar producto</h1>
 
-      <form onSubmit={onSubmit} className="grid gap-3">
-        <div className="grid gap-2">
-          <label className="text-sm font-medium">Nombre</label>
-          <input
-            name="nombre"
-            value={formData.nombre}
-            onChange={handleChange}
-            className="border rounded px-3 py-2 w-full"
-            required
-            inputMode="text"
-            placeholder="Ej.: Filtro de aceite XYZ"
-          />
+      <form onSubmit={crear} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <label className="flex flex-col">
+            <span className="text-sm mb-1">Nombre *</span>
+            <input className="border rounded px-3 py-2" name="nombre" value={form.nombre} onChange={onChange} />
+          </label>
+
+          <label className="flex flex-col">
+            <span className="text-sm mb-1">Proveedor</span>
+            <input className="border rounded px-3 py-2" name="proveedor" value={form.proveedor} onChange={onChange} />
+          </label>
+
+          <label className="md:col-span-2 flex flex-col">
+            <span className="text-sm mb-1">Descripción</span>
+            <textarea className="border rounded px-3 py-2" name="descripcion" value={form.descripcion} onChange={onChange} rows={3}/>
+          </label>
+
+          <label className="flex flex-col">
+            <span className="text-sm mb-1">Precio minorista *</span>
+            <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_minorista" value={form.precio_minorista} onChange={onChange} />
+          </label>
+
+          <label className="flex flex-col">
+            <span className="text-sm mb-1">Precio mayorista</span>
+            <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_mayorista" value={form.precio_mayorista} onChange={onChange} />
+          </label>
+
+          <label className="flex flex-col">
+            <span className="text-sm mb-1">Stock *</span>
+            <input type="number" className="border rounded px-3 py-2" name="stock" value={form.stock} onChange={onChange} />
+          </label>
+
+          <label className="flex flex-col md:col-span-1">
+            <span className="text-sm mb-1">Categorías *</span>
+            <select multiple className="border rounded px-3 py-2 h-40" value={form.categorias} onChange={onSelectCats}>
+              {cats.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+            </select>
+            <span className="text-xs text-gray-500 mt-1">Ctrl/Cmd + click para seleccionar varias</span>
+          </label>
         </div>
 
-        <div className="grid gap-2">
-          <label className="text-sm font-medium">Descripción</label>
-          <textarea
-            name="descripcion"
-            value={formData.descripcion}
-            onChange={handleChange}
-            className="border rounded px-3 py-2 w-full min-h-28"
-            required
-            placeholder="Detalles, compatibilidades, etc."
-          />
-        </div>
-
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Costo (ingresá vos)</label>
-            <input
-              name="costo"
-              type="number"
-              step="0.01"
-              value={formData.costo}
-              onChange={handleChange}
-              className="border rounded px-3 py-2 w-full"
-              required
-              inputMode="decimal"
-              placeholder="0.00"
-            />
-            <p className="text-[11px] text-gray-500">
-              El sistema calcula el <b>precio</b> como <b>costo × 1.5</b>.
-            </p>
+        {/* ENVÍO */}
+        <div className="border rounded p-3 space-y-3">
+          <div className="font-medium">Envío</div>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2">
+              <input type="radio" name="envio_modo" value="unidad" checked={form.envio_modo==="unidad"} onChange={onChange}/>
+              Por unidad
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="envio_modo" value="bulto" checked={form.envio_modo==="bulto"} onChange={onChange}/>
+              Por bulto
+            </label>
           </div>
 
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Precio (auto)</label>
-            <input
-              value={precioCalculado}
-              className="border rounded px-3 py-2 w-full bg-gray-50"
-              readOnly
-              tabIndex={-1}
-            />
-            <p className="text-[11px] text-gray-500">Precio final mostrado al cliente.</p>
-          </div>
+          {form.envio_modo === "unidad" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="flex flex-col">
+                <span className="text-sm mb-1">Peso por unidad (kg) *</span>
+                <input type="number" step="0.001" className="border rounded px-3 py-2" name="unidad_peso_kg" value={form.unidad_peso_kg} onChange={onChange} />
+              </label>
+              <label className="flex flex-col">
+                <span className="text-sm mb-1">Volumen por unidad (dm³) *</span>
+                <input type="number" step="0.001" className="border rounded px-3 py-2" name="unidad_vol_dm3" value={form.unidad_vol_dm3} onChange={onChange} />
+              </label>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label className="flex flex-col">
+                <span className="text-sm mb-1">Unidades por bulto *</span>
+                <input type="number" className="border rounded px-3 py-2" name="bulto_unidades" value={form.bulto_unidades} onChange={onChange} />
+              </label>
+              <label className="flex flex-col">
+                <span className="text-sm mb-1">Peso por bulto (kg) *</span>
+                <input type="number" step="0.001" className="border rounded px-3 py-2" name="bulto_peso_kg" value={form.bulto_peso_kg} onChange={onChange} />
+              </label>
+              <label className="flex flex-col">
+                <span className="text-sm mb-1">Volumen por bulto (dm³) *</span>
+                <input type="number" step="0.001" className="border rounded px-3 py-2" name="bulto_vol_dm3" value={form.bulto_vol_dm3} onChange={onChange} />
+              </label>
+            </div>
+          )}
         </div>
 
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Costo de envío</label>
-            <input
-              name="costo_envio"
-              type="number"
-              step="0.01"
-              value={formData.costo_envio}
-              onChange={handleChange}
-              className="border rounded px-3 py-2 w-full"
-              inputMode="decimal"
-              placeholder="0.00"
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Stock</label>
-            <input
-              name="stock"
-              type="number"
-              min="0"
-              value={formData.stock}
-              onChange={handleChange}
-              className="border rounded px-3 py-2 w-full"
-              inputMode="numeric"
-              placeholder="0"
-            />
-          </div>
+        {/* IMÁGENES */}
+        <div className="border rounded p-3 space-y-2">
+          <div className="font-medium">Imágenes (jpg/png/webp, sin conversión)</div>
+          <input type="file" accept="image/*" multiple onChange={onFiles}/>
+          {previews?.length > 0 && (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mt-2">
+              {previews.map(p => (
+                <div key={p.url} className="aspect-square border rounded overflow-hidden">
+                  <img src={p.url} alt={p.name} className="w-full h-full object-cover"/>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="grid gap-2">
-          <label className="text-sm font-medium">Categorías</label>
-          <select
-            multiple
-            value={formData.categorias}
-            onChange={handleCategorias}
-            className="border rounded px-3 py-2 w-full"
-          >
-            {loadingCats ? (
-              <option>Cargando…</option>
-            ) : categorias.length === 0 ? (
-              <option disabled>No hay categorías</option>
-            ) : (
-              categorias.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))
-            )}
-          </select>
-          <p className="text-[11px] text-gray-500">
-            En móvil: tocá y arrastrá para seleccionar varias (o mantené presionado).
-          </p>
+        <div className="flex justify-end">
+          <button disabled={subiendo} className="px-4 py-2 bg-black text-white rounded hover:opacity-90">
+            {subiendo ? "Guardando..." : "Crear producto"}
+          </button>
         </div>
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="px-4 py-2 border rounded w-full sm:w-auto hover:bg-gray-50 disabled:opacity-50"
-        >
-          {submitting ? "Guardando…" : "Guardar producto"}
-        </button>
       </form>
     </div>
   );
