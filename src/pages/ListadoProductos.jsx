@@ -7,15 +7,23 @@ const ListadoProductos = () => {
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
 
+  // Normaliza cualquier forma común de payload (array directo o envueltos tipo DRF)
+  const normalizeList = (d) => {
+    if (!d) return [];
+    if (Array.isArray(d)) return d;
+    return (
+      d.results ?? d.items ?? d.data ?? d.mis_productos ?? d.products ?? []
+    );
+  };
+
   const fetchProductos = async () => {
     try {
       const res = await axios.get('products/mis-productos/');
-      // 🔧 Normalizador: soporta array directo o payloads tipo DRF {count, results:[...]} / {data: [...]}, etc.
-      const d = res.data;
-      const lista = Array.isArray(d) ? d : (d?.results ?? d?.items ?? d?.data ?? d?.mis_productos ?? d?.products ?? []);
-      setProductos(Array.isArray(lista) ? lista : []);
+      setProductos(normalizeList(res.data));
+      setError('');
     } catch (err) {
       console.error(err);
+      setProductos([]); // evita mapa sobre algo no-array
       setError('Error al cargar los productos');
     }
   };
@@ -29,87 +37,56 @@ const ListadoProductos = () => {
 
     try {
       const res = await axios.delete(`products/${id}/eliminar/`);
-      setMensaje(res.data.message || 'Producto eliminado correctamente');
+      setMensaje(res.data?.message || 'Producto eliminado correctamente');
       setError('');
-      // Actualizar la lista quitando el producto eliminado
-      setProductos((prev) => (Array.isArray(prev) ? prev.filter((p) => p.id === undefined || p.id !== id) : []));
+      // Actualizar la lista quitando el producto eliminado (forma segura)
+      setProductos((prev) => (Array.isArray(prev) ? prev.filter((p) => p?.id !== id) : []));
     } catch (err) {
       console.error(err);
       setMensaje('');
-      setError(err?.response?.data?.error || 'No se pudo eliminar el producto');
+      setError(err?.response?.data?.error || 'Error al eliminar el producto');
     }
   };
 
+  const lista = Array.isArray(productos) ? productos : [];
+
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Mis Productos</h2>
+    <div style={{ maxWidth: 600, margin: '0 auto', padding: 20 }}>
+      <h2 style={{ textAlign: 'center', marginBottom: 20, fontSize: '32px' }}>Mis Productos</h2>
 
-      {mensaje && (
-        <div style={{ backgroundColor: '#e7f5e9', color: '#0f5132', padding: 10, borderRadius: 4, marginBottom: 12 }}>
-          {mensaje}
-        </div>
-      )}
+      {mensaje && <p style={{ color: 'green', textAlign: 'center' }}>{mensaje}</p>}
+      {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
 
-      {error && (
-        <div style={{ backgroundColor: '#fdecea', color: '#842029', padding: 10, borderRadius: 4, marginBottom: 12 }}>
-          {error}
-        </div>
-      )}
-
-      <div style={{ marginBottom: 16 }}>
-        <Link
-          to="/socio/productos/nuevo"
-          style={{
-            padding: '8px 14px',
-            backgroundColor: '#0d6efd',
-            color: '#fff',
-            textDecoration: 'none',
-            borderRadius: 6,
-          }}
-        >
-          + Nuevo producto
-        </Link>
-      </div>
-
-      {(!Array.isArray(productos) || productos.length === 0) ? (
-        <p>No tenés productos todavía.</p>
+      {lista.length === 0 ? (
+        <p style={{ textAlign: 'center', fontSize: '32px' }}>No hay productos aún.</p>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {(Array.isArray(productos) ? productos : []).map((prod) => (
+        <ul style={{ listStyle: 'none', padding: 0 }}>
+          {lista.map((prod) => (
             <li
-              key={prod.id || prod.slug || Math.random()}
+              key={prod.id}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px 12px',
-                border: '1px solid #eee',
+                border: '1px solid #ddd',
                 borderRadius: 8,
-                marginBottom: 10,
+                padding: 15,
+                marginBottom: 15,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <img
-                  src={prod?.imagen_portada || prod?.image || '/no-image.png'}
-                  alt={prod?.nombre || 'Producto'}
-                  width={64}
-                  height={64}
-                  style={{ objectFit: 'cover', borderRadius: 8, border: '1px solid #f0f0f0' }}
-                />
-                <div>
-                  <div style={{ fontWeight: 600 }}>{prod?.nombre || 'Sin nombre'}</div>
-                  <div style={{ color: '#555', fontSize: 14 }}>
-                    Precio: {prod?.precio != null ? `$ ${prod.precio}` : '—'} · Stock: {prod?.stock ?? '—'}
-                  </div>
-                </div>
-              </div>
+              <h3 style={{ margin: '0 0 10px' }}>{prod?.nombre ?? 'Sin nombre'}</h3>
+              <p style={{ margin: '5px 0' }}>{prod?.descripcion ?? ''}</p>
+              <p style={{ margin: '5px 0' }}>
+                <strong>Precio:</strong> ${prod?.precio ?? '—'}
+              </p>
+              <p style={{ margin: '5px 0' }}>
+                <strong>Stock:</strong> {prod?.stock ?? '—'}
+              </p>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <Link
-                  to={`/socio/productos/${prod.id || ''}/editar`}
+                  to={`/socio/productos/editar/${prod.id}`}
                   style={{
                     padding: '6px 12px',
-                    backgroundColor: '#198754',
+                    backgroundColor: '#007bff',
                     color: '#fff',
                     textDecoration: 'none',
                     borderRadius: 5,
