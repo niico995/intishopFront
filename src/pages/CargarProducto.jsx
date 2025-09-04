@@ -21,15 +21,20 @@ const initialForm = {
 
 export default function CargarProducto() {
   const [form, setForm] = useState(initialForm);
-  const [cats, setCats] = useState([]);
-  const [imagenes, setImagenes] = useState([]);      // File[]
+  const [cats, setCats] = useState([]);          // [{id, nombre}, ...]
+  const [imagenes, setImagenes] = useState([]);  // File[]
   const [subiendo, setSubiendo] = useState(false);
+
+  // UI para crear categoría
+  const [newCatName, setNewCatName] = useState("");
+  const [creatingCat, setCreatingCat] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
         const { data } = await axiosInstance.get("products/categorias/");
-        setCats(Array.isArray(data) ? data : []);
+        const lista = Array.isArray(data) ? data : (data?.results ?? data?.items ?? data?.data ?? []);
+        setCats(Array.isArray(lista) ? lista : []);
       } catch (e) {
         console.error(e);
         toast("No pude cargar categorías");
@@ -56,6 +61,68 @@ export default function CargarProducto() {
     const files = Array.from(e.target.files || []);
     setImagenes(files);
   };
+
+  // ---------- Crear categoría nueva ----------
+  const existingCatByName = (name) => {
+    const n = name?.trim()?.toLowerCase();
+    if (!n) return null;
+    return cats.find(c => (c?.nombre ?? "").trim().toLowerCase() === n) || null;
+  };
+
+  const createCategoryAPI = async (nombre) => {
+    // 1) Intento POST directo a /products/categorias/
+    try {
+      const { data } = await axiosInstance.post("products/categorias/", { nombre });
+      return data;
+    } catch (e1) {
+      // 2) Fallback a /products/categorias/crear/
+      try {
+        const { data } = await axiosInstance.post("products/categorias/crear/", { nombre });
+        return data;
+      } catch (e2) {
+        // Re-lanzar el segundo error (más representativo si ambos fallan)
+        throw e2;
+      }
+    }
+  };
+
+  const addNewCategory = async () => {
+    const name = newCatName.trim();
+    if (!name) return toast("Ingresá el nombre de la categoría");
+
+    // Si ya existe, solo la seleccionamos
+    const ya = existingCatByName(name);
+    if (ya?.id) {
+      setForm(p => ({
+        ...p,
+        categorias: p.categorias.includes(ya.id) ? p.categorias : [...p.categorias, ya.id],
+      }));
+      setNewCatName("");
+      return toast("La categoría ya existía; la seleccioné");
+    }
+
+    setCreatingCat(true);
+    try {
+      const creada = await createCategoryAPI(name);
+      // Soportar backend que devuelva {id, nombre} o {categoria:{...}}
+      const cat = creada?.id ? creada : (creada?.categoria ?? creada);
+
+      if (!cat?.id) {
+        throw new Error("Respuesta inesperada al crear la categoría");
+      }
+
+      setCats(prev => [...prev, cat]);
+      setForm(p => ({ ...p, categorias: [...p.categorias, cat.id] }));
+      setNewCatName("");
+      toast("Categoría creada y seleccionada");
+    } catch (e) {
+      console.error(e);
+      toast(e?.response?.data?.error || "No se pudo crear la categoría");
+    } finally {
+      setCreatingCat(false);
+    }
+  };
+  // -------------------------------------------
 
   const validar = () => {
     if (!form.nombre?.trim()) return "Ingresá un nombre";
@@ -91,7 +158,7 @@ export default function CargarProducto() {
         }
       });
       // Categorías (múltiple)
-      form.categorias.forEach(id => fd.append("categorias", id));
+      (form.categorias || []).forEach(id => fd.append("categorias", id));
 
       // 1) Crear producto
       const { data: producto } = await axiosInstance.post("products/productos/", fd);
@@ -152,13 +219,33 @@ export default function CargarProducto() {
             <input type="number" className="border rounded px-3 py-2" name="stock" value={form.stock} onChange={onChange} />
           </label>
 
-          <label className="flex flex-col md:col-span-1">
-            <span className="text-sm mb-1">Categorías *</span>
+          {/* CATEGORÍAS */}
+          <div className="md:col-span-1 flex flex-col gap-2">
+            <span className="text-sm">Categorías *</span>
             <select multiple className="border rounded px-3 py-2 h-40" value={form.categorias} onChange={onSelectCats}>
-              {cats.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              {(cats || []).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
-            <span className="text-xs text-gray-500 mt-1">Ctrl/Cmd + click para seleccionar varias</span>
-          </label>
+            <span className="text-xs text-gray-500">Ctrl/Cmd + click para seleccionar varias</span>
+
+            {/* Crear nueva categoría */}
+            <div className="flex items-center gap-2">
+              <input
+                className="border rounded px-3 py-2 flex-1"
+                placeholder="Nueva categoría"
+                value={newCatName}
+                onChange={(e)=>setNewCatName(e.target.value)}
+                onKeyDown={(e)=>{ if (e.key==='Enter'){ e.preventDefault(); addNewCategory(); } }}
+              />
+              <button
+                type="button"
+                onClick={addNewCategory}
+                disabled={creatingCat}
+                className="px-3 py-2 bg-black text-white rounded hover:opacity-90"
+              >
+                {creatingCat ? "Agregando..." : "Agregar"}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* ENVÍO */}
