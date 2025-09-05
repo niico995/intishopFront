@@ -1,6 +1,7 @@
 // // // // src/components/ProductCard.jsx
 // // // import { useState } from "react";
 // // // import { Link } from "react-router-dom";
+import AddToCartButton from "./AddToCartButton";
 // // // import { useCart } from "./CartContext";
 
 // // // export default function ProductCard({ product }) {
@@ -81,7 +82,7 @@
 // // //           min={1}
 // // //           max={stock || undefined}
 // // //           value={qty}
-// // //           onChange={(e) => setQty(Math.max(1, Number(e.target.value)))}
+// // //           onChange={(e) = className="w-24 h-12 text-lg text-center border rounded-md"> setQty(Math.max(1, Number(e.target.value)))}
 // // //           className="w-16 border rounded-md px-2 py-1"
 // // //         />
 // // //         <button onClick={handleAdd} className="flex-1 px-3 py-2 rounded-md bg-black text-white">
@@ -96,6 +97,7 @@
 
 // // // import { useState } from "react";
 // // // import { Link } from "react-router-dom";
+import AddToCartButton from "./AddToCartButton";
 // // // import { useCart } from "./CartContext";
 
 // // // export default function ProductCard({ product }) {
@@ -277,6 +279,7 @@
 // // //   );
 // // // }
 // // import { Link } from "react-router-dom";
+import AddToCartButton from "./AddToCartButton";
 
 // // const PLACEHOLDER = "/img/placeholder-product.png"; // ajustá a tu asset
 
@@ -320,6 +323,7 @@
 // // }
 // import { useState } from "react";
 // import { Link } from "react-router-dom";
+import AddToCartButton from "./AddToCartButton";
 // import { useCart } from "./CartContext";
 
 // export default function ProductCard({ product }) {
@@ -502,6 +506,7 @@
 // }
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import AddToCartButton from "./AddToCartButton";
 import { useCart } from "./CartContext";
 
 export default function ProductCard({ product }) {
@@ -591,7 +596,7 @@ export default function ProductCard({ product }) {
           type="number"
           min="1"
           value={qty}
-          onChange={(e) => setQty(e.target.value)}
+          onChange={(e) = className="w-24 h-12 text-lg text-center border rounded-md"> setQty(e.target.value)}
           className="w-16 px-2 py-1 border rounded"
         />
         <button

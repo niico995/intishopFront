@@ -6,8 +6,8 @@
 // // const initialForm = {
 // //   nombre: "",
 // //   descripcion: "",
-// //   precio_minorista: "",
-// //   precio_mayorista: "",
+// //   precio_base: "",
+// //   costo: "",
 // //   proveedor: "",
 // //   stock: "",
 // //   categorias: [],
@@ -126,7 +126,8 @@
 
 // //   const validar = () => {
 // //     if (!form.nombre?.trim()) return "Ingresá un nombre";
-// //     if (!form.precio_minorista) return "Precio minorista requerido";
+// //     if (!form.costo) return "Costo requerido";
+    if (!form.precio_base) return "Precio del socio requerido";
 // //     if (!form.stock && form.stock !== 0) return "Stock requerido";
 // //     if (!form.categorias?.length) return "Seleccioná al menos una categoría";
 
@@ -150,7 +151,7 @@
 // //     try {
 // //       const fd = new FormData();
 // //       // Campos simples
-// //       ["nombre","descripcion","precio_minorista","precio_mayorista","proveedor","stock","envio_modo",
+// //       ["nombre","descripcion","precio_base","costo","proveedor","stock","envio_modo",
 // //        "unidad_peso_kg","unidad_vol_dm3","bulto_unidades","bulto_peso_kg","bulto_vol_dm3"
 // //       ].forEach(k => {
 // //         if (form[k] !== "" && form[k] !== null && form[k] !== undefined) {
@@ -205,13 +206,13 @@
 // //           </label>
 
 // //           <label className="flex flex-col">
-// //             <span className="text-sm mb-1">Precio minorista *</span>
-// //             <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_minorista" value={form.precio_minorista} onChange={onChange} />
+// //             <span className="text-sm mb-1">Precio del socio (base) *</span>
+// //             <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_base" value={form.precio_base} onChange={onChange} />
 // //           </label>
 
 // //           <label className="flex flex-col">
-// //             <span className="text-sm mb-1">Precio mayorista</span>
-// //             <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_mayorista" value={form.precio_mayorista} onChange={onChange} />
+// //             <span className="text-sm mb-1">Costo</span>
+// //             <input type="number" step="0.01" className="border rounded px-3 py-2" name="costo" value={form.costo} onChange={onChange} />
 // //           </label>
 
 // //           <label className="flex flex-col">
@@ -485,8 +486,8 @@ try { toast = (await import("../utils/notify")).toast; } catch { toast = (m)=>al
 const initialForm = {
   nombre: "",
   descripcion: "",
-  precio_minorista: "",
-  precio_mayorista: "",
+  costo: "",
+  precio_base: "",
   proveedor: "",
   stock: "",
   categorias: [],
@@ -605,7 +606,8 @@ export default function CargarProducto() {
 
   const validar = () => {
     if (!form.nombre?.trim()) return "Ingresá un nombre";
-    if (!form.precio_minorista) return "Precio minorista requerido";
+    if (!form.costo) return "Costo requerido";
+    if (!form.precio_base) return "Precio del socio requerido";
     if (!form.stock && form.stock !== 0) return "Stock requerido";
     if (!form.categorias?.length) return "Seleccioná al menos una categoría";
 
@@ -629,7 +631,7 @@ export default function CargarProducto() {
     try {
       const fd = new FormData();
       // Campos simples
-      ["nombre","descripcion","precio_minorista","precio_mayorista","proveedor","stock","envio_modo",
+      ["nombre","descripcion","precio_base","costo","proveedor","stock","envio_modo",
        "unidad_peso_kg","unidad_vol_dm3","bulto_unidades","bulto_peso_kg","bulto_vol_dm3"
       ].forEach(k => {
         if (form[k] !== "" && form[k] !== null && form[k] !== undefined) {
@@ -684,13 +686,13 @@ export default function CargarProducto() {
           </label>
 
           <label className="flex flex-col">
-            <span className="text-sm mb-1">Precio minorista *</span>
-            <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_minorista" value={form.precio_minorista} onChange={onChange} />
+            <span className="text-sm mb-1">Precio del socio (base) *</span>
+            <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_base" value={form.precio_base} onChange={onChange} />
           </label>
 
           <label className="flex flex-col">
-            <span className="text-sm mb-1">Precio mayorista</span>
-            <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_mayorista" value={form.precio_mayorista} onChange={onChange} />
+            <span className="text-sm mb-1">Costo</span>
+            <input type="number" step="0.01" className="border rounded px-3 py-2" name="costo" value={form.costo} onChange={onChange} />
           </label>
 
           <label className="flex flex-col">

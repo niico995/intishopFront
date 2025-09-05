@@ -582,6 +582,10 @@ function App() {
               {/* Carrito */}
               <Route path="/carrito" element={<Carrito />} />
 
+              {/* Password reset */}
+              <Route path="/recuperar-password" element={<RecuperarPassword />} />
+              <Route path="/nueva-password" element={<NuevaPassword />} />
+
               {/* Perfil público (placeholder) */}
               <Route
                 path="/perfil"

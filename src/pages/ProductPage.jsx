@@ -237,7 +237,7 @@
 //           <button
 //             onClick={addToCart}
 //             disabled={sinStock}
-//             className="px-4 py-2 rounded-md bg-black text-white disabled:opacity-50 disabled:cursor-not-allowed"
+//             className={`px-4 py-2 rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-700 ${added ? "bg-green-600" : "bg-black"}`}
 //           >
 //             Agregar al carrito
 //           </button>
@@ -420,7 +420,7 @@ export default function ProductoDetalle() {
             <button
               type="button"
               onClick={() => step(-1)}
-              className="px-3 text-base disabled:opacity-50"
+              className="px-4 py-2 text-lg disabled:opacity-50"
               disabled={sinStock}
               aria-label="Disminuir cantidad"
             >
@@ -435,14 +435,14 @@ export default function ProductoDetalle() {
               value={qtyStr}
               onChange={onQtyChange}
               onBlur={onQtyBlur}
-              className="w-20 text-center outline-none"
+              className="w-24 h-12 text-lg text-center outline-none border rounded-md"
               disabled={sinStock}
               aria-label="Cantidad"
             />
             <button
               type="button"
               onClick={() => step(1)}
-              className="px-3 text-base disabled:opacity-50"
+              className="px-4 py-2 text-lg disabled:opacity-50"
               disabled={sinStock || (typeof p.stock === "number" && parseClamp(qtyStr) >= p.stock)}
               aria-label="Aumentar cantidad"
             >
@@ -450,13 +450,7 @@ export default function ProductoDetalle() {
             </button>
           </div>
 
-          <button
-            onClick={addToCart}
-            disabled={sinStock}
-            className="px-4 py-2 rounded-md bg-black text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Agregar al carrito
-          </button>
+          <AddToCartButton onClick={addToCart} disabled={sinStock} />
         </div>
       </div>
     </div>

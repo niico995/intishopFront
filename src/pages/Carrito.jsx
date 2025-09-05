@@ -156,17 +156,17 @@
 //                 type="number"
 //                 min={1}
 //                 value={p.qty || 1}
-//                 onChange={(e) =>
+//                 onChange={(e) = className="w-24 h-12 text-lg text-center border rounded-md">
 //                   updateQty(p.id, Math.max(1, Number(e.target.value)))
 //                 }
-//                 className="w-20 border rounded px-2 py-1 text-center"
+//                 className="w-24 h-12 text-lg  border rounded px-2 py-1 text-center"
 //               />
 //               <input
 //                 type="number"
 //                 min={1}
 //                 placeholder="Quitar…"
 //                 value={removeCount[p.id] || ""}
-//                 onChange={(e) =>
+//                 onChange={(e) = className="w-24 h-12 text-lg text-center border rounded-md">
 //                   setRemoveCount((s) => ({
 //                     ...s,
 //                     [p.id]: e.target.value,
@@ -379,17 +379,17 @@ export default function Carrito() {
                 type="number"
                 min={1}
                 value={p.qty || 1}
-                onChange={(e) =>
+                onChange={(e) = className="w-24 h-12 text-lg text-center border rounded-md">
                   updateQty(p.id, Math.max(1, Number(e.target.value)))
                 }
-                className="w-20 border rounded px-2 py-1 text-center"
+                className="w-24 h-12 text-lg  border rounded px-2 py-1 text-center"
               />
               <input
                 type="number"
                 min={1}
                 placeholder="Quitar…"
                 value={removeCount[p.id] || ""}
-                onChange={(e) =>
+                onChange={(e) = className="w-24 h-12 text-lg text-center border rounded-md">
                   setRemoveCount((s) => ({
                     ...s,
                     [p.id]: e.target.value,

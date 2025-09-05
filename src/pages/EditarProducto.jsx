@@ -24,8 +24,8 @@
 // //           id: p.id,
 // //           nombre: p.nombre || "",
 // //           descripcion: p.descripcion || "",
-// //           precio_minorista: p.precio_minorista ?? "",
-// //           precio_mayorista: p.precio_mayorista ?? "",
+// //           precio_base: p.precio_base ?? "",
+// //           costo: p.costo ?? "",
 // //           proveedor: p.proveedor || "",
 // //           stock: p.stock ?? "",
 // //           categorias: p.categorias || [],
@@ -74,7 +74,7 @@
 // //     try {
 // //       const fd = new FormData();
 // //       // En PATCH mandamos SOLO lo editable (pero podés enviar todo)
-// //       ["nombre","descripcion","precio_minorista","precio_mayorista","proveedor","stock",
+// //       ["nombre","descripcion","precio_base","costo","proveedor","stock",
 // //        "envio_modo","unidad_peso_kg","unidad_vol_dm3","bulto_unidades","bulto_peso_kg","bulto_vol_dm3"
 // //       ].forEach(k => {
 // //         if (form[k] !== "" && form[k] !== null && form[k] !== undefined) {
@@ -134,12 +134,12 @@
 // //           </label>
 
 // //           <label className="flex flex-col">
-// //             <span className="text-sm mb-1">Precio minorista</span>
-// //             <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_minorista" value={form.precio_minorista} onChange={onChange} />
+// //             <span className="text-sm mb-1">Precio del socio (base)</span>
+// //             <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_base" value={form.precio_base} onChange={onChange} />
 // //           </label>
 // //           <label className="flex flex-col">
-// //             <span className="text-sm mb-1">Precio mayorista</span>
-// //             <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_mayorista" value={form.precio_mayorista} onChange={onChange} />
+// //             <span className="text-sm mb-1">Costo</span>
+// //             <input type="number" step="0.01" className="border rounded px-3 py-2" name="costo" value={form.costo} onChange={onChange} />
 // //           </label>
 // //           <label className="flex flex-col">
 // //             <span className="text-sm mb-1">Stock</span>
@@ -444,8 +444,8 @@ export default function EditarProducto() {
           id: p.id,
           nombre: p.nombre || "",
           descripcion: p.descripcion || "",
-          precio_minorista: p.precio_minorista ?? "",
-          precio_mayorista: p.precio_mayorista ?? "",
+          precio_base: p.precio_base ?? "",
+          costo: p.costo ?? "",
           proveedor: p.proveedor || "",
           stock: p.stock ?? "",
           categorias: p.categorias || [],
@@ -494,7 +494,7 @@ export default function EditarProducto() {
     try {
       const fd = new FormData();
       // En PATCH mandamos SOLO lo editable (pero podés enviar todo)
-      ["nombre","descripcion","precio_minorista","precio_mayorista","proveedor","stock",
+      ["nombre","descripcion","precio_base","costo","proveedor","stock",
        "envio_modo","unidad_peso_kg","unidad_vol_dm3","bulto_unidades","bulto_peso_kg","bulto_vol_dm3"
       ].forEach(k => {
         if (form[k] !== "" && form[k] !== null && form[k] !== undefined) {
@@ -554,12 +554,12 @@ export default function EditarProducto() {
           </label>
 
           <label className="flex flex-col">
-            <span className="text-sm mb-1">Precio minorista</span>
-            <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_minorista" value={form.precio_minorista} onChange={onChange} />
+            <span className="text-sm mb-1">Precio del socio (base)</span>
+            <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_base" value={form.precio_base} onChange={onChange} />
           </label>
           <label className="flex flex-col">
-            <span className="text-sm mb-1">Precio mayorista</span>
-            <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_mayorista" value={form.precio_mayorista} onChange={onChange} />
+            <span className="text-sm mb-1">Costo</span>
+            <input type="number" step="0.01" className="border rounded px-3 py-2" name="costo" value={form.costo} onChange={onChange} />
           </label>
           <label className="flex flex-col">
             <span className="text-sm mb-1">Stock</span>

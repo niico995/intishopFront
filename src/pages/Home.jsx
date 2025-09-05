@@ -571,14 +571,14 @@ export default function Home() {
         <>
           {destacadosPRO.length > 0 && (
             <section className="mt-2">
-              <h2 className="text-xl font-semibold mb-3">Destacados</h2>
+              <h2 className="text-xl font-semibold mb-3">Productos PRO</h2>
               <Grid items={destacadosPRO} />
             </section>
           )}
 
           {destacadosMB.length > 0 && (
             <section className="mt-6">
-              <h2 className="text-xl font-semibold mb-3">Más productos</h2>
+              <h2 className="text-xl font-semibold mb-3">Otros productos</h2>
               <Grid items={destacadosMB} />
             </section>
           )}
