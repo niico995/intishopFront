@@ -101,7 +101,7 @@
 
 // export default ListadoProductosVenta;
 import { useEffect, useState } from "react";
-import ProductCard from "../components/ProductCard";
+import ProductCard from "../components/PorductCard";
 import { listarCompat } from "../api/products";
 
 export default function ListadoProductosVenta({ q, categoriaId, sellerId, limit = 24, order = "nuevos" }) {
