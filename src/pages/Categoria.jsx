@@ -83,7 +83,7 @@
 // }
 import { useEffect, useMemo, useState } from "react";
 import { listarCategorias, listarPublicos } from "../api/products";
-import ProductCard from "../components/ProductCard";
+import ProductCard from "../components/PorductCard"
 import { useParams, useSearchParams } from "react-router-dom";
 
 const ORDER_MAP = {
