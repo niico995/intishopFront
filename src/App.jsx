@@ -20,6 +20,9 @@
 // // // // Auth/Registro/Login
 // // // import Registro from "./pages/Registro";
 // // // import Login from "./pages/login/login";
+// import RecuperarPassword from "./pages/RecuperarPassword";
+// import NuevaPassword from "./pages/NuevaPassword";
+
 
 // // // // Cliente
 // // // import CargarPerfilCliente from "./pages/CargarPerfilCliente";
@@ -172,6 +175,9 @@
 // // // Auth/Registro/Login
 // // import Registro from "./pages/Registro";
 // // import Login from "./pages/login/login";
+// import RecuperarPassword from "./pages/RecuperarPassword";
+// import NuevaPassword from "./pages/NuevaPassword";
+
 
 // // // Cliente
 // // import CargarPerfilCliente from "./pages/CargarPerfilCliente";
@@ -343,6 +349,9 @@
 // // Auth/Registro/Login
 // import Registro from "./pages/Registro";
 // import Login from "./pages/login/login";
+// import RecuperarPassword from "./pages/RecuperarPassword";
+// import NuevaPassword from "./pages/NuevaPassword";
+
 
 // // Cliente
 // import CargarPerfilCliente from "./pages/CargarPerfilCliente";
@@ -514,6 +523,9 @@ import VendedorPage from "./pages/VendedorPage";
 // Auth/Registro/Login
 import Registro from "./pages/Registro";
 import Login from "./pages/login/login";
+import RecuperarPassword from "./pages/RecuperarPassword";
+import NuevaPassword from "./pages/NuevaPassword";
+
 
 // Cliente
 import CargarPerfilCliente from "./pages/CargarPerfilCliente";
