@@ -1,6 +1,6 @@
 // src/lib/api.js
 const RAW = import.meta.env.VITE_API_URL || "";
-export const API_BASE = RAW.replace(/\/+$/, "");
+export const API_BASE = RAW.replace(/\/+$/, ""); // sin barra al final
 
 export async function api(path, opts = {}) {
   const url = `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
@@ -12,8 +12,8 @@ export async function api(path, opts = {}) {
     },
   });
   if (!res.ok) {
-    let text = "";
-    try { text = await res.text(); } catch {}
+    const text = await res.text().catch(() => "");
+    // Lanzamos error legible (evita "e is not defined")
     throw new Error(`HTTP ${res.status} ${res.statusText} — ${text.slice(0, 200)}`);
   }
   const ct = res.headers.get("content-type") || "";

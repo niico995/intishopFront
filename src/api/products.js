@@ -1,6 +1,6 @@
 // Helpers de API centralizados
 import axiosInstance from "./axiosConfig";
-import axiosAuth from "./axiosAuth"; // tu instancia con JWT
+import axiosAuth from "./axiosConfig"; // tu instancia con JWT
 
 // ----- Público / Tienda -----
 export const getHomeDestacados = (params) =>

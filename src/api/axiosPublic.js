@@ -1,18 +1,12 @@
-import axios from 'axios';
+// src/api/axiosPublic.js
+import axios from "axios";
 
-const baseURL =
-  (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '') // debe terminar con /
-  || 'https://intishopback.onrender.com'; // 👈 en local: HTTP
+const base = (import.meta.env.VITE_API_URL || "https://intishopback.onrender.com").replace(/\/+$/, "");
 
 const axiosPublic = axios.create({
-  baseURL,
-  timeout: 15000,
+  baseURL: base,
   withCredentials: false,
-});
-
-axiosPublic.interceptors.request.use((config) => {
-  if (config.headers) delete config.headers.Authorization;
-  return config;
+  headers: { "Content-Type": "application/json" },
 });
 
 export default axiosPublic;
