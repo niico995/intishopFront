@@ -98,7 +98,7 @@
 
 
 import { useEffect, useState } from "react";
-import ProductCard from "../components/ProductCard";
+import ProductCard from "../components/PorductCard"
 import { listarCompat } from "../api/products";
 import { useSearchParams } from "react-router-dom";
 
