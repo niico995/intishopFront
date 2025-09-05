@@ -431,6 +431,58 @@ export default function EditarProducto() {
   const [nuevasImgs, setNuevasImgs] = useState([]);  // File[]
   const [guardando, setGuardando] = useState(false);
   const [subiendoImgs, setSubiendoImgs] = useState(false);
+const [newCatName, setNewCatName] = useState("");
+const [creatingCat, setCreatingCat] = useState(false);
+
+const existingCatByName = (name) => {
+  const n = String(name || "").trim().toLowerCase();
+  return cats.find(c => String(c.nombre || "").toLowerCase() === n);
+};
+
+async function createCategoryAPI(nombre) {
+  try {
+    const { data } = await axiosInstance.post("products/categorias/", { nombre });
+    return data;
+  } catch (e1) {
+    const { data } = await axiosInstance.post("products/categorias/crear/", { nombre });
+    return data;
+  }
+}
+
+const addNewCategory = async () => {
+  const name = newCatName.trim();
+  if (!name) return toast("Ingresá el nombre de la categoría");
+
+  const ya = existingCatByName(name);
+  if (ya?.id) {
+    setForm(p => ({
+      ...p,
+      categorias: p.categorias.includes(ya.id) ? p.categorias : [...p.categorias, ya.id],
+    }));
+    setNewCatName("");
+    return toast("La categoría ya existía; la seleccioné");
+  }
+  setCreatingCat(true);
+  try {
+    const creada = await createCategoryAPI(name);
+    const cat = creada?.id ? creada : (creada?.categoria ?? creada);
+    if (!cat?.id) throw new Error("Respuesta inesperada al crear la categoría");
+    setCats(prev => [...prev, cat]);
+    setForm(p => ({ ...p, categorias: [...p.categorias, cat.id] }));
+    setNewCatName("");
+    toast("Categoría creada");
+  } catch (e) {
+    console.error(e);
+    toast(e?.response?.data?.error || "No se pudo crear la categoría");
+  } finally {
+    setCreatingCat(false);
+  }
+};
+
+const onSelectCats = (e) => {
+  const ids = Array.from(e.target.selectedOptions || []).map(o => Number(o.value));
+  setForm(p => ({ ...p, categorias: ids }));
+};
 
   useEffect(() => {
     (async () => {
@@ -576,7 +628,32 @@ export default function EditarProducto() {
         </div>
 
         {/* ENVÍO */}
-        <div className="border rounded p-3 space-y-3">
+        {/* CATEGORÍAS */}
+<div className="md:col-span-1 flex flex-col gap-2">
+  <span className="text-sm">Categorías *</span>
+  <select multiple className="border rounded px-3 py-2 h-40" value={form.categorias} onChange={onSelectCats}>
+    {(cats || []).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+  </select>
+  <span className="text-xs text-gray-500">Ctrl/Cmd + click para seleccionar varias</span>
+  <div className="flex items-center gap-2">
+    <input
+      className="border rounded px-3 py-2 flex-1"
+      placeholder="Nueva categoría"
+      value={newCatName}
+      onChange={(e)=>setNewCatName(e.target.value)}
+      onKeyDown={(e)=>{ if (e.key==='Enter'){ e.preventDefault(); addNewCategory(); } }}
+    />
+    <button
+      type="button"
+      onClick={addNewCategory}
+      disabled={creatingCat}
+      className="px-3 py-2 bg-black text-white rounded hover:opacity-90 disabled:opacity-60"
+    >
+      {creatingCat ? "Agregando..." : "Agregar"}
+    </button>
+  </div>
+</div>
+<div className="border rounded p-3 space-y-3">
           <div className="font-medium">Envío</div>
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2">
