@@ -127,7 +127,7 @@
 // //   const validar = () => {
 // //     if (!form.nombre?.trim()) return "Ingresá un nombre";
 // //     if (!form.costo) return "Costo requerido";
-    if (!form.precio_base) return "Precio del socio requerido";
+    // // if (!form.precio_base) return "Precio del socio requerido";
 // //     if (!form.stock && form.stock !== 0) return "Stock requerido";
 // //     if (!form.categorias?.length) return "Seleccioná al menos una categoría";
 
@@ -607,7 +607,7 @@ export default function CargarProducto() {
   const validar = () => {
     if (!form.nombre?.trim()) return "Ingresá un nombre";
     if (!form.costo) return "Costo requerido";
-    if (!form.precio_base) return "Precio del socio requerido";
+    // // if (!form.precio_base) return "Precio del socio requerido";
     if (!form.stock && form.stock !== 0) return "Stock requerido";
     if (!form.categorias?.length) return "Seleccioná al menos una categoría";
 
