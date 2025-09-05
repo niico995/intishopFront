@@ -247,6 +247,7 @@
 //   );
 // }
 
+
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "../api/axiosPublic"; // público para detalle
