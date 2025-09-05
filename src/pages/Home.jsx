@@ -458,7 +458,7 @@
 //   );
 // }
 import React, { useEffect, useState } from "react";
-import { api } from "../lib/api";
+import { api } from "../lib/api"
 import { Link } from "react-router-dom";
 
 export default function Home() {
