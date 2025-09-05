@@ -457,12 +457,10 @@
 //     </div>
 //   );
 // }
-
 import { useEffect, useState } from "react";
 import axios from "../api/axiosConfig";
 
-// ⚠️ Si tu componente está guardado como ProductCard.jsx,
-// cambiá este import a:  import ProductCard from "../components/ProductCard";
+// ⚠️ Cambiá este import si tu archivo es ProductCard.jsx
 import ProductCard from "../components/PorductCard";
 
 function BannerStrip({ items = [] }) {
@@ -481,7 +479,6 @@ function BannerStrip({ items = [] }) {
             src={b.imagen_url}
             alt={b.titulo || "Banner"}
             className="w-full h-40 md:h-56 object-cover"
-            // si la URL está caída o hay mixed-content, ocultamos el <img> roto
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
         </a>
@@ -491,26 +488,31 @@ function BannerStrip({ items = [] }) {
 }
 
 export default function Home() {
-  const [destacados, setDestacados] = useState([]);          // ahora es ARRAY
+  // Secciones separadas cuando el back lo provee:
+  const [destacadosPRO, setDestacadosPRO] = useState([]);
+  const [destacadosMB, setDestacadosMB] = useState([]);
+
+  // Fallback: un único array si el back devuelve lista plana
+  const [destacadosFlat, setDestacadosFlat] = useState([]);
+
   const [banners, setBanners] = useState({ principal: [], intermedio: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
+
     const load = async () => {
       try {
         setLoading(true);
 
-        // 1) Productos destacados (el back devuelve array simple)
+        // 1) Destacados
         const r1 = await axios.get("products/home/destacados/");
         const d1 = r1.data;
 
-        // tolerante: acepta formato nuevo (array) y el viejo (objeto con key productos_medios_o_basicos)
-        const productos = Array.isArray(d1)
-          ? d1
-          : Array.isArray(d1?.productos_medios_o_basicos)
-          ? d1.productos_medios_o_basicos
-          : [];
+        // Soportar AMBOS formatos
+        const pro = Array.isArray(d1?.productos_pro) ? d1.productos_pro : [];
+        const mb  = Array.isArray(d1?.productos_medios_o_basicos) ? d1.productos_medios_o_basicos : [];
+        const flat = Array.isArray(d1) ? d1 : [];
 
         // 2) Banners públicos
         const r2 = await axios.get("products/banners/publico/");
@@ -519,12 +521,25 @@ export default function Home() {
         const intermedio = d2.filter((b) => b.posicion === "intermedio");
 
         if (!mounted) return;
-        setDestacados(productos);
+
+        // Si el back trae grupos → usamos grupos, si no → usamos flat
+        if (pro.length > 0 || mb.length > 0) {
+          setDestacadosPRO(pro);
+          setDestacadosMB(mb);
+          setDestacadosFlat([]);
+        } else {
+          setDestacadosPRO([]);
+          setDestacadosMB([]);
+          setDestacadosFlat(flat);
+        }
+
         setBanners({ principal, intermedio });
       } catch (e) {
         console.error("Home load error:", e);
         if (!mounted) return;
-        setDestacados([]);
+        setDestacadosPRO([]);
+        setDestacadosMB([]);
+        setDestacadosFlat([]);
         setBanners({ principal: [], intermedio: [] });
       } finally {
         if (mounted) setLoading(false);
@@ -539,24 +554,46 @@ export default function Home() {
     return <div className="max-w-6xl mx-auto p-4">Cargando…</div>;
   }
 
+  // Helpers para no repetir markup ni clases (no tocamos estilos)
+  const Grid = ({ items }) => (
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      {items.map((p) => <ProductCard key={p.id} product={p} />)}
+    </div>
+  );
+
   return (
     <div className="max-w-6xl mx-auto p-4">
       {/* Banners superiores */}
       <BannerStrip items={banners.principal} />
 
-      {/* Destacados */}
-      <section className="mt-2">
-        <h2 className="text-xl font-semibold mb-3">Destacados</h2>
-        {Array.isArray(destacados) && destacados.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {destacados.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-sm text-gray-500">Sin productos por ahora.</div>
-        )}
-      </section>
+      {/* ====== MODO GRUPOS (PRO + Medios/Básicos) ====== */}
+      {(destacadosPRO.length > 0 || destacadosMB.length > 0) ? (
+        <>
+          {destacadosPRO.length > 0 && (
+            <section className="mt-2">
+              <h2 className="text-xl font-semibold mb-3">Destacados</h2>
+              <Grid items={destacadosPRO} />
+            </section>
+          )}
+
+          {destacadosMB.length > 0 && (
+            <section className="mt-6">
+              <h2 className="text-xl font-semibold mb-3">Más productos</h2>
+              <Grid items={destacadosMB} />
+            </section>
+          )}
+        </>
+      ) : (
+        /* ====== MODO FLAT (un solo array) ====== */
+        <section className="mt-2">
+          <h2 className="text-xl font-semibold mb-3">Destacados</h2>
+          {destacadosFlat.length > 0 ? (
+            <Grid items={destacadosFlat} />
+          ) : (
+            <div className="text-sm text-gray-500">Sin productos por ahora.</div>
+          )}
+        </section>
+      )}
 
       {/* Banners intermedios */}
       <BannerStrip items={banners.intermedio} />
