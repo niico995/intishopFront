@@ -1,7 +1,7 @@
 // // // // src/components/ProductCard.jsx
 // // // import { useState } from "react";
 // // // import { Link } from "react-router-dom";
-import AddToCartButton from "./AddToCartButton";
+// import AddToCartButton from "./AddToCartButton";
 // // // import { useCart } from "./CartContext";
 
 // // // export default function ProductCard({ product }) {
@@ -97,7 +97,7 @@ import AddToCartButton from "./AddToCartButton";
 
 // // // import { useState } from "react";
 // // // import { Link } from "react-router-dom";
-import AddToCartButton from "./AddToCartButton";
+// import AddToCartButton from "./AddToCartButton";
 // // // import { useCart } from "./CartContext";
 
 // // // export default function ProductCard({ product }) {
@@ -279,7 +279,7 @@ import AddToCartButton from "./AddToCartButton";
 // // //   );
 // // // }
 // // import { Link } from "react-router-dom";
-import AddToCartButton from "./AddToCartButton";
+// import AddToCartButton from "./AddToCartButton";
 
 // // const PLACEHOLDER = "/img/placeholder-product.png"; // ajustá a tu asset
 
@@ -323,7 +323,7 @@ import AddToCartButton from "./AddToCartButton";
 // // }
 // import { useState } from "react";
 // import { Link } from "react-router-dom";
-import AddToCartButton from "./AddToCartButton";
+// import AddToCartButton from "./AddToCartButton";
 // import { useCart } from "./CartContext";
 
 // export default function ProductCard({ product }) {
