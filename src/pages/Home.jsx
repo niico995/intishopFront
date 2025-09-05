@@ -272,7 +272,7 @@
 
 
 import { useEffect, useState } from "react";
-import ProductCard from "../components/ProductCard";
+import ProductCard from "../components/PorductCard"
 import { getHomeDestacados, getBannersPublicos } from "../api/products";
 
 const precioFmt = (v) => {
