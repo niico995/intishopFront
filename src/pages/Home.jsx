@@ -457,146 +457,83 @@
 //     </div>
 //   );
 // }
-import { useEffect, useState } from "react";
-import axios from "../api/axiosConfig";
-
-// ⚠️ Cambiá este import si tu archivo es ProductCard.jsx
-import ProductCard from "../components/PorductCard";
-
-function BannerStrip({ items = [] }) {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 my-4">
-      {items.map((b) => (
-        <a
-          key={b.id}
-          href={b.link || "#"}
-          target={b.link ? "_blank" : undefined}
-          rel="noreferrer"
-          className="block rounded-lg overflow-hidden border"
-        >
-          <img
-            src={b.imagen_url}
-            alt={b.titulo || "Banner"}
-            className="w-full h-40 md:h-56 object-cover"
-            onError={(e) => { e.currentTarget.style.display = "none"; }}
-          />
-        </a>
-      ))}
-    </div>
-  );
-}
+import React, { useEffect, useState } from "react";
+import { api } from "../lib/api";
+import { Link } from "react-router-dom";
 
 export default function Home() {
-  // Secciones separadas cuando el back lo provee:
-  const [destacadosPRO, setDestacadosPRO] = useState([]);
-  const [destacadosMB, setDestacadosMB] = useState([]);
-
-  // Fallback: un único array si el back devuelve lista plana
-  const [destacadosFlat, setDestacadosFlat] = useState([]);
-
-  const [banners, setBanners] = useState({ principal: [], intermedio: [] });
   const [loading, setLoading] = useState(true);
+  const [errMsg, setErrMsg] = useState("");
+  const [pro, setPro] = useState([]);
+  const [otros, setOtros] = useState([]);
 
   useEffect(() => {
-    let mounted = true;
-
-    const load = async () => {
+    let abort = false;
+    (async () => {
+      setLoading(true);
+      setErrMsg("");
       try {
-        setLoading(true);
-
-        // 1) Destacados
-        const r1 = await axios.get("products/home/destacados/");
-        const d1 = r1.data;
-
-        // Soportar AMBOS formatos
-        const pro = Array.isArray(d1?.productos_pro) ? d1.productos_pro : [];
-        const mb  = Array.isArray(d1?.productos_medios_o_basicos) ? d1.productos_medios_o_basicos : [];
-        const flat = Array.isArray(d1) ? d1 : [];
-
-        // 2) Banners públicos
-        const r2 = await axios.get("products/banners/publico/");
-        const d2 = Array.isArray(r2.data) ? r2.data : [];
-        const principal = d2.filter((b) => b.posicion === "principal");
-        const intermedio = d2.filter((b) => b.posicion === "intermedio");
-
-        if (!mounted) return;
-
-        // Si el back trae grupos → usamos grupos, si no → usamos flat
-        if (pro.length > 0 || mb.length > 0) {
-          setDestacadosPRO(pro);
-          setDestacadosMB(mb);
-          setDestacadosFlat([]);
-        } else {
-          setDestacadosPRO([]);
-          setDestacadosMB([]);
-          setDestacadosFlat(flat);
-        }
-
-        setBanners({ principal, intermedio });
-      } catch (e) {
-        console.error("Home load error:", e);
-        if (!mounted) return;
-        setDestacadosPRO([]);
-        setDestacadosMB([]);
-        setDestacadosFlat([]);
-        setBanners({ principal: [], intermedio: [] });
+        const data = await api("/api/products/home/destacados/");
+        if (abort) return;
+        setPro(data?.pro || []);
+        setOtros(data?.otros || []);
+      } catch (err) {
+        if (abort) return;
+        // Mostramos error pero NO rompemos la app (evita “e is not defined”)
+        setErrMsg(err?.message || "Error cargando destacados");
+        setPro([]);
+        setOtros([]);
+        console.error("Home destacados:", err);
       } finally {
-        if (mounted) setLoading(false);
+        if (!abort) setLoading(false);
       }
-    };
-
-    load();
-    return () => { mounted = false; };
+    })();
+    return () => { abort = true; };
   }, []);
 
-  if (loading) {
-    return <div className="max-w-6xl mx-auto p-4">Cargando…</div>;
-  }
-
-  // Helpers para no repetir markup ni clases (no tocamos estilos)
-  const Grid = ({ items }) => (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-      {items.map((p) => <ProductCard key={p.id} product={p} />)}
-    </div>
-  );
+  if (loading) return <div className="p-4">Cargando…</div>;
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      {/* Banners superiores */}
-      <BannerStrip items={banners.principal} />
-
-      {/* ====== MODO GRUPOS (PRO + Medios/Básicos) ====== */}
-      {(destacadosPRO.length > 0 || destacadosMB.length > 0) ? (
-        <>
-          {destacadosPRO.length > 0 && (
-            <section className="mt-2">
-              <h2 className="text-xl font-semibold mb-3">Productos PRO</h2>
-              <Grid items={destacadosPRO} />
-            </section>
-          )}
-
-          {destacadosMB.length > 0 && (
-            <section className="mt-6">
-              <h2 className="text-xl font-semibold mb-3">Otros productos</h2>
-              <Grid items={destacadosMB} />
-            </section>
-          )}
-        </>
-      ) : (
-        /* ====== MODO FLAT (un solo array) ====== */
-        <section className="mt-2">
-          <h2 className="text-xl font-semibold mb-3">Destacados</h2>
-          {destacadosFlat.length > 0 ? (
-            <Grid items={destacadosFlat} />
-          ) : (
-            <div className="text-sm text-gray-500">Sin productos por ahora.</div>
-          )}
-        </section>
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      {errMsg && (
+        <div className="mb-4 rounded border border-red-300 bg-red-50 text-red-800 px-3 py-2 text-sm">
+          {errMsg}
+        </div>
       )}
 
-      {/* Banners intermedios */}
-      <BannerStrip items={banners.intermedio} />
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold mb-3">Productos Pro</h2>
+        {pro.length === 0 ? (
+          <div className="text-sm text-gray-500">Sin productos por ahora.</div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {pro.map((p) => (
+              <Link key={p.id} to={`/producto/${p.id}`} className="border rounded p-3 hover:shadow-sm">
+                <div className="text-sm font-medium truncate">{p.nombre}</div>
+                <div className="text-xs text-gray-500 truncate">{p.proveedor || "-"}</div>
+                <div className="mt-1 text-green-700 font-semibold">${p.precio_base ?? p.precio}</div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-lg font-semibold mb-3">Otros productos</h2>
+        {otros.length === 0 ? (
+          <div className="text-sm text-gray-500">Sin productos por ahora.</div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {otros.map((p) => (
+              <Link key={p.id} to={`/producto/${p.id}`} className="border rounded p-3 hover:shadow-sm">
+                <div className="text-sm font-medium truncate">{p.nombre}</div>
+                <div className="text-xs text-gray-500 truncate">{p.proveedor || "-"}</div>
+                <div className="mt-1 text-green-700 font-semibold">${p.precio_base ?? p.precio}</div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

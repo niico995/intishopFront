@@ -1,738 +1,319 @@
-// // import { useEffect, useMemo, useState } from "react";
-// // import { useParams } from "react-router-dom";
-// // import axiosInstance from "../api/axiosConfig";
-// // let toast;
-// // try { toast = (await import("../utils/notify")).toast; } catch { toast = (m)=>alert(m); }
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
-// // export default function EditarProducto() {
-// //   const { id } = useParams();
-// //   const [form, setForm] = useState(null);
-// //   const [cats, setCats] = useState([]);
-// //   const [nuevasImgs, setNuevasImgs] = useState([]);  // File[]
-// //   const [guardando, setGuardando] = useState(false);
-// //   const [subiendoImgs, setSubiendoImgs] = useState(false);
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
-// //   useEffect(() => {
-// //     (async () => {
-// //       try {
-// //         const [pRes, cRes] = await Promise.all([
-// //           axiosInstance.get(`products/productos/${id}/`),
-// //           axiosInstance.get("products/categorias/"),
-// //         ]);
-// //         const p = pRes.data;
-// //         setForm({
-// //           id: p.id,
-// //           nombre: p.nombre || "",
-// //           descripcion: p.descripcion || "",
-// //           precio_base: p.precio_base ?? "",
-// //           costo: p.costo ?? "",
-// //           proveedor: p.proveedor || "",
-// //           stock: p.stock ?? "",
-// //           categorias: p.categorias || [],
-// //           envio_modo: p.envio_modo || "unidad",
-// //           unidad_peso_kg: p.unidad_peso_kg ?? "",
-// //           unidad_vol_dm3: p.unidad_vol_dm3 ?? "",
-// //           bulto_unidades: p.bulto_unidades ?? "",
-// //           bulto_peso_kg: p.bulto_peso_kg ?? "",
-// //           bulto_vol_dm3: p.bulto_vol_dm3 ?? "",
-// //           imagenes: Array.isArray(p.imagenes) ? p.imagenes : [],
-// //           slug: p.slug,
-// //         });
-// //         setCats(Array.isArray(cRes.data) ? cRes.data : []);
-// //       } catch (e) {
-// //         console.error(e);
-// //         toast("No pude cargar el producto");
-// //       }
-// //     })();
-// //   }, [id]);
-
-// //   const previews = useMemo(
-// //     () => nuevasImgs.map(f => ({ name: f.name, url: URL.createObjectURL(f) })),
-// //     [nuevasImgs]
-// //   );
-
-// //   if (!form) return <div className="p-4">Cargando…</div>;
-
-// //   const onChange = (e) => {
-// //     const { name, value } = e.target;
-// //     setForm((p) => ({ ...p, [name]: value }));
-// //   };
-
-// //   const onSelectCats = (e) => {
-// //     const values = Array.from(e.target.selectedOptions).map(o => Number(o.value));
-// //     setForm(p => ({ ...p, categorias: values }));
-// //   };
-
-// //   const onFiles = (e) => {
-// //     const files = Array.from(e.target.files || []);
-// //     setNuevasImgs(files);
-// //   };
-
-// //   const guardar = async (e) => {
-// //     e.preventDefault();
-// //     setGuardando(true);
-// //     try {
-// //       const fd = new FormData();
-// //       // En PATCH mandamos SOLO lo editable (pero podés enviar todo)
-// //       ["nombre","descripcion","precio_base","costo","proveedor","stock",
-// //        "envio_modo","unidad_peso_kg","unidad_vol_dm3","bulto_unidades","bulto_peso_kg","bulto_vol_dm3"
-// //       ].forEach(k => {
-// //         if (form[k] !== "" && form[k] !== null && form[k] !== undefined) {
-// //           fd.append(k, form[k]);
-// //         }
-// //       });
-// //       form.categorias.forEach(id => fd.append("categorias", id));
-// //       await axiosInstance.patch(`products/productos/${id}/`, fd);
-// //       toast("Producto actualizado");
-// //     } catch (e) {
-// //       console.error(e);
-// //       toast(e?.response?.data?.error || "No se pudo actualizar");
-// //     } finally {
-// //       setGuardando(false);
-// //     }
-// //   };
-
-// //   const subirImagenes = async () => {
-// //     if (!nuevasImgs.length) return toast("No seleccionaste imágenes");
-// //     setSubiendoImgs(true);
-// //     try {
-// //       const fdImg = new FormData();
-// //       nuevasImgs.forEach(f => fdImg.append("imagenes", f));
-// //       const { data } = await axiosInstance.post(`products/productos/${id}/subir_imagenes/`, fdImg, {
-// //         headers: { "Content-Type": "multipart/form-data" },
-// //       });
-// //       // refrescar lista local
-// //       setForm(p => ({ ...p, imagenes: [...p.imagenes, ...data] }));
-// //       setNuevasImgs([]);
-// //       toast("Imágenes subidas");
-// //     } catch (e) {
-// //       console.error(e);
-// //       toast(e?.response?.data?.error || "No se pudo subir imágenes");
-// //     } finally {
-// //       setSubiendoImgs(false);
-// //     }
-// //   };
-
-// //   return (
-// //     <div className="max-w-3xl mx-auto p-4 space-y-6">
-// //       <h1 className="text-2xl font-semibold">Editar producto #{id}</h1>
-
-// //       <form onSubmit={guardar} className="space-y-4">
-// //         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-// //           <label className="flex flex-col">
-// //             <span className="text-sm mb-1">Nombre</span>
-// //             <input className="border rounded px-3 py-2" name="nombre" value={form.nombre} onChange={onChange} />
-// //           </label>
-// //           <label className="flex flex-col">
-// //             <span className="text-sm mb-1">Proveedor</span>
-// //             <input className="border rounded px-3 py-2" name="proveedor" value={form.proveedor} onChange={onChange} />
-// //           </label>
-
-// //           <label className="md:col-span-2 flex flex-col">
-// //             <span className="text-sm mb-1">Descripción</span>
-// //             <textarea className="border rounded px-3 py-2" rows={3} name="descripcion" value={form.descripcion} onChange={onChange} />
-// //           </label>
-
-// //           <label className="flex flex-col">
-// //             <span className="text-sm mb-1">Precio del socio (base)</span>
-// //             <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_base" value={form.precio_base} onChange={onChange} />
-// //           </label>
-// //           <label className="flex flex-col">
-// //             <span className="text-sm mb-1">Costo</span>
-// //             <input type="number" step="0.01" className="border rounded px-3 py-2" name="costo" value={form.costo} onChange={onChange} />
-// //           </label>
-// //           <label className="flex flex-col">
-// //             <span className="text-sm mb-1">Stock</span>
-// //             <input type="number" className="border rounded px-3 py-2" name="stock" value={form.stock} onChange={onChange} />
-// //           </label>
-
-// //           <label className="flex flex-col md:col-span-1">
-// //             <span className="text-sm mb-1">Categorías</span>
-// //             <select multiple className="border rounded px-3 py-2 h-40" value={form.categorias} onChange={onSelectCats}>
-// //               {cats.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-// //             </select>
-// //             <span className="text-xs text-gray-500 mt-1">Ctrl/Cmd + click para seleccionar varias</span>
-// //           </label>
-// //         </div>
-
-// //         {/* ENVÍO */}
-// //         <div className="border rounded p-3 space-y-3">
-// //           <div className="font-medium">Envío</div>
-// //           <div className="flex items-center gap-4">
-// //             <label className="flex items-center gap-2">
-// //               <input type="radio" name="envio_modo" value="unidad" checked={form.envio_modo==="unidad"} onChange={onChange}/>
-// //               Por unidad
-// //             </label>
-// //             <label className="flex items-center gap-2">
-// //               <input type="radio" name="envio_modo" value="bulto" checked={form.envio_modo==="bulto"} onChange={onChange}/>
-// //               Por bulto
-// //             </label>
-// //           </div>
-
-// //           {form.envio_modo === "unidad" ? (
-// //             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-// //               <label className="flex flex-col">
-// //                 <span className="text-sm mb-1">Peso por unidad (kg)</span>
-// //                 <input type="number" step="0.001" className="border rounded px-3 py-2" name="unidad_peso_kg" value={form.unidad_peso_kg} onChange={onChange} />
-// //               </label>
-// //               <label className="flex flex-col">
-// //                 <span className="text-sm mb-1">Volumen por unidad (dm³)</span>
-// //                 <input type="number" step="0.001" className="border rounded px-3 py-2" name="unidad_vol_dm3" value={form.unidad_vol_dm3} onChange={onChange} />
-// //               </label>
-// //             </div>
-// //           ) : (
-// //             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-// //               <label className="flex flex-col">
-// //                 <span className="text-sm mb-1">Unidades por bulto</span>
-// //                 <input type="number" className="border rounded px-3 py-2" name="bulto_unidades" value={form.bulto_unidades} onChange={onChange} />
-// //               </label>
-// //               <label className="flex flex-col">
-// //                 <span className="text-sm mb-1">Peso por bulto (kg)</span>
-// //                 <input type="number" step="0.001" className="border rounded px-3 py-2" name="bulto_peso_kg" value={form.bulto_peso_kg} onChange={onChange} />
-// //               </label>
-// //               <label className="flex flex-col">
-// //                 <span className="text-sm mb-1">Volumen por bulto (dm³)</span>
-// //                 <input type="number" step="0.001" className="border rounded px-3 py-2" name="bulto_vol_dm3" value={form.bulto_vol_dm3} onChange={onChange} />
-// //               </label>
-// //             </div>
-// //           )}
-// //         </div>
-
-// //         {/* IMÁGENES ACTUALES */}
-// //         {!!form.imagenes?.length && (
-// //           <div className="border rounded p-3">
-// //             <div className="font-medium mb-2">Imágenes actuales</div>
-// //             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-// //               {form.imagenes.map(img => (
-// //                 <div key={img.id} className="aspect-square border rounded overflow-hidden">
-// //                   <img src={img.url} alt={`img-${img.id}`} className="w-full h-full object-cover" />
-// //                 </div>
-// //               ))}
-// //             </div>
-// //           </div>
-// //         )}
-
-// //         {/* NUEVAS IMÁGENES */}
-// //         <div className="border rounded p-3 space-y-2">
-// //           <div className="font-medium">Agregar imágenes (jpg/png/webp)</div>
-// //           <input type="file" accept="image/*" multiple onChange={onFiles} />
-// //           {previews?.length > 0 && (
-// //             <>
-// //               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mt-2">
-// //                 {previews.map(p => (
-// //                   <div key={p.url} className="aspect-square border rounded overflow-hidden">
-// //                     <img src={p.url} alt={p.name} className="w-full h-full object-cover"/>
-// //                   </div>
-// //                 ))}
-// //               </div>
-// //               <button type="button" disabled={subiendoImgs} onClick={subirImagenes}
-// //                 className="px-4 py-2 bg-black text-white rounded hover:opacity-90">
-// //                 {subiendoImgs ? "Subiendo..." : "Subir nuevas imágenes"}
-// //               </button>
-// //             </>
-// //           )}
-// //         </div>
-
-// //         <div className="flex justify-end">
-// //           <button disabled={guardando} className="px-4 py-2 bg-black text-white rounded hover:opacity-90">
-// //             {guardando ? "Guardando..." : "Guardar cambios"}
-// //           </button>
-// //         </div>
-// //       </form>
-// //     </div>
-// //   );
-// // }
-// import { useEffect, useState } from "react";
-// import {
-//   getProductoSeller,
-//   actualizarProducto,
-//   listarCategorias,
-//   uploadProductImage,
-//   listProductImages,
-//   setPrimaryImage,
-//   deleteProductImage,
-// } from "../api/products";
-// import { useParams } from "react-router-dom";
-
-// export default function EditarProducto() {
-//   const { id } = useParams();
-//   const [form, setForm] = useState(null);
-//   const [cats, setCats] = useState([]);
-//   const [newFiles, setNewFiles] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [saving, setSaving] = useState(false);
-//   const [imgs, setImgs] = useState([]);
-
-//   useEffect(() => {
-//     let alive = true;
-//     Promise.all([getProductoSeller(id), listarCategorias(), listProductImages(id)])
-//       .then(([prod, cResp, iResp]) => {
-//         if (!alive) return;
-//         setForm(prod.data);
-//         setCats(cResp.data || []);
-//         setImgs(iResp.data || []);
-//       })
-//       .catch((e) => console.error(e))
-//       .finally(() => alive && setLoading(false));
-//     return () => { alive = false; };
-//   }, [id]);
-
-//   const onSubmit = async (e) => {
-//     e.preventDefault();
-//     setSaving(true);
-//     try {
-//       await actualizarProducto(id, {
-//         nombre: form.nombre,
-//         descripcion: form.descripcion,
-//         costo: form.costo,
-//         precio: form.precio,
-//         proveedor: form.proveedor,
-//         stock: form.stock,
-//         categorias: form.categorias || [],
-//         envio_modo: form.envio_modo,
-//         bulto_unidades: form.bulto_unidades,
-//         costo_envio_unidad: form.costo_envio_unidad,
-//         costo_envio_bulto: form.costo_envio_bulto,
-//       });
-
-//       if (newFiles.length) {
-//         await Promise.all(newFiles.map((f, idx) => uploadProductImage(id, f, { sort_order: idx })));
-//       }
-
-//       const imgsRes = await listProductImages(id);
-//       setImgs(imgsRes.data || []);
-//       setNewFiles([]);
-//       alert("Producto actualizado");
-//     } catch (err) {
-//       console.error(err?.response?.data || err?.message);
-//       alert("Error al actualizar");
-//     } finally {
-//       setSaving(false);
-//     }
-//   };
-
-//   if (loading || !form) return <div className="p-6">Cargando...</div>;
-
-//   return (
-//     <div className="max-w-2xl mx-auto px-4 py-6">
-//       <h1 className="text-xl font-semibold mb-4">Editar producto #{id}</h1>
-//       <form onSubmit={onSubmit} className="space-y-4">
-//         <input className="w-full px-3 py-2 rounded-lg bg-white/5" value={form.nombre}
-//                onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
-//         <textarea className="w-full px-3 py-2 rounded-lg bg-white/5" rows={4} value={form.descripcion}
-//                   onChange={(e) => setForm({ ...form, descripcion: e.target.value })} />
-//         <div className="grid grid-cols-2 gap-3">
-//           <input className="px-3 py-2 rounded-lg bg-white/5" placeholder="Costo" value={form.costo}
-//                  onChange={(e) => setForm({ ...form, costo: e.target.value })} />
-//           <input className="px-3 py-2 rounded-lg bg-white/5" placeholder="Precio" value={form.precio}
-//                  onChange={(e) => setForm({ ...form, precio: e.target.value })} />
-//           <input className="px-3 py-2 rounded-lg bg-white/5" placeholder="Marca (proveedor)" value={form.proveedor}
-//                  onChange={(e) => setForm({ ...form, proveedor: e.target.value })} />
-//           <input className="px-3 py-2 rounded-lg bg-white/5" placeholder="Stock" type="number" value={form.stock}
-//                  onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })} />
-//         </div>
-
-//         <div>
-//           <label className="text-sm text-gray-300">Categorías</label>
-//           <div className="flex gap-2 mt-2 flex-wrap">
-//             {cats.map((c) => {
-//               const active = (form.categorias || []).includes(c.id);
-//               return (
-//                 <button
-//                   type="button"
-//                   key={c.id}
-//                   onClick={() =>
-//                     setForm((s) => ({
-//                       ...s,
-//                       categorias: active
-//                         ? s.categorias.filter((x) => x !== c.id)
-//                         : [...(s.categorias || []), c.id],
-//                     }))
-//                   }
-//                   className={`px-3 py-1 rounded-full text-sm ${active ? "bg-blue-600" : "bg-white/10"}`}
-//                 >
-//                   {c.nombre}
-//                 </button>
-//               );
-//             })}
-//           </div>
-//         </div>
-
-//         {/* Envío */}
-//         <div className="grid grid-cols-2 gap-3">
-//           <select
-//             className="px-3 py-2 rounded-lg bg-white/5"
-//             value={form.envio_modo}
-//             onChange={(e) => setForm({ ...form, envio_modo: e.target.value })}
-//           >
-//             <option value="unidad">Envío por unidad</option>
-//             <option value="bulto">Envío por bulto</option>
-//           </select>
-//           <input className="px-3 py-2 rounded-lg bg-white/5" placeholder="Unidades por bulto" type="number"
-//                  value={form.bulto_unidades}
-//                  onChange={(e) => setForm({ ...form, bulto_unidades: Number(e.target.value || 1) })} />
-//           <input className="px-3 py-2 rounded-lg bg-white/5" placeholder="Costo envío unidad" value={form.costo_envio_unidad}
-//                  onChange={(e) => setForm({ ...form, costo_envio_unidad: e.target.value })} />
-//           <input className="px-3 py-2 rounded-lg bg-white/5" placeholder="Costo envío bulto" value={form.costo_envio_bulto}
-//                  onChange={(e) => setForm({ ...form, costo_envio_bulto: e.target.value })} />
-//         </div>
-
-//         {/* Imágenes actuales */}
-//         <div>
-//           <div className="text-sm text-gray-300 mb-2">Imágenes</div>
-//           <div className="flex flex-wrap gap-3">
-//             {imgs.map((im) => (
-//               <div key={im.id} className="w-32">
-//                 {/* eslint-disable-next-line jsx-a11y/alt-text */}
-//                 <img src={im.url} className="w-32 h-24 object-cover rounded-lg" />
-//                 <div className="flex gap-1 mt-1">
-//                   {!im.is_primary && (
-//                     <button type="button" className="text-xs px-2 py-1 bg-blue-600 rounded"
-//                             onClick={async () => {
-//                               await setPrimaryImage(im.id);
-//                               const refreshed = await listProductImages(id);
-//                               setImgs(refreshed.data || []);
-//                             }}>Primaria</button>
-//                   )}
-//                   <button type="button" className="text-xs px-2 py-1 bg-red-600 rounded"
-//                           onClick={async () => {
-//                             await deleteProductImage(im.id);
-//                             setImgs((prev) => prev.filter((x) => x.id !== im.id));
-//                           }}>Borrar</button>
-//                 </div>
-//               </div>
-//             ))}
-//           </div>
-//         </div>
-
-//         {/* Subir nuevas */}
-//         <div>
-//           <label className="text-sm text-gray-300">Agregar imágenes</label>
-//           <input type="file" multiple onChange={(e) => setNewFiles(Array.from(e.target.files || []))} className="mt-1 block" />
-//         </div>
-
-//         <button disabled={saving} className="px-4 py-2 rounded-lg bg-blue-600 disabled:opacity-50">
-//           {saving ? "Guardando..." : "Guardar cambios"}
-//         </button>
-//       </form>
-//     </div>
-//   );
-// }
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
-import axiosInstance from "../api/axiosConfig";
-let toast;
-try { toast = (await import("../utils/notify")).toast; } catch { toast = (m)=>alert(m); }
-
+/**
+ * Editor de producto con:
+ *  - multiselect de categorías
+ *  - campo "Nueva categoría" que crea (o reutiliza si ya existe) y la marca seleccionada
+ *  - envío PATCH con categorias: [ids]
+ *
+ * Requiere: token JWT en localStorage (key "token") o adaptá a tu auth.
+ */
 export default function EditarProducto() {
-  const { id } = useParams();
-  const [form, setForm] = useState(null);
+  const { id } = useParams(); // /productos/editar/:id
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  // catálogo de categorías y selección (ids)
   const [cats, setCats] = useState([]);
-  const [nuevasImgs, setNuevasImgs] = useState([]);  // File[]
-  const [guardando, setGuardando] = useState(false);
-  const [subiendoImgs, setSubiendoImgs] = useState(false);
-const [newCatName, setNewCatName] = useState("");
-const [creatingCat, setCreatingCat] = useState(false);
+  const [selectedCatIds, setSelectedCatIds] = useState([]);
 
-const existingCatByName = (name) => {
-  const n = String(name || "").trim().toLowerCase();
-  return cats.find(c => String(c.nombre || "").toLowerCase() === n);
-};
+  // campos del producto (ajustá nombres si hace falta)
+  const [form, setForm] = useState({
+    nombre: "",
+    descripcion: "",
+    costo: "",          // obligatorio
+    precio_base: "",    // precio del socio
+    stock: "",
+    activo: true,
+    proveedor: "",
+    destacado: false,
+  });
 
-async function createCategoryAPI(nombre) {
-  try {
-    const { data } = await axiosInstance.post("products/categorias/", { nombre });
-    return data;
-  } catch (e1) {
-    const { data } = await axiosInstance.post("products/categorias/crear/", { nombre });
-    return data;
-  }
-}
-
-const addNewCategory = async () => {
-  const name = newCatName.trim();
-  if (!name) return toast("Ingresá el nombre de la categoría");
-
-  const ya = existingCatByName(name);
-  if (ya?.id) {
-    setForm(p => ({
-      ...p,
-      categorias: p.categorias.includes(ya.id) ? p.categorias : [...p.categorias, ya.id],
-    }));
-    setNewCatName("");
-    return toast("La categoría ya existía; la seleccioné");
-  }
-  setCreatingCat(true);
-  try {
-    const creada = await createCategoryAPI(name);
-    const cat = creada?.id ? creada : (creada?.categoria ?? creada);
-    if (!cat?.id) throw new Error("Respuesta inesperada al crear la categoría");
-    setCats(prev => [...prev, cat]);
-    setForm(p => ({ ...p, categorias: [...p.categorias, cat.id] }));
-    setNewCatName("");
-    toast("Categoría creada");
-  } catch (e) {
-    console.error(e);
-    toast(e?.response?.data?.error || "No se pudo crear la categoría");
-  } finally {
-    setCreatingCat(false);
-  }
-};
-
-const onSelectCats = (e) => {
-  const ids = Array.from(e.target.selectedOptions || []).map(o => Number(o.value));
-  setForm(p => ({ ...p, categorias: ids }));
-};
+  const token = useMemo(() => localStorage.getItem("token") || "", []);
 
   useEffect(() => {
-    (async () => {
+    let abort = false;
+
+    async function loadAll() {
+      setLoading(true);
       try {
-        const [pRes, cRes] = await Promise.all([
-          axiosInstance.get(`products/productos/${id}/`),
-          axiosInstance.get("products/categorias/"),
-        ]);
-        const p = pRes.data;
-        setForm({
-          id: p.id,
-          nombre: p.nombre || "",
-          descripcion: p.descripcion || "",
-          precio_base: p.precio_base ?? "",
-          costo: p.costo ?? "",
-          proveedor: p.proveedor || "",
-          stock: p.stock ?? "",
-          categorias: p.categorias || [],
-          envio_modo: p.envio_modo || "unidad",
-          unidad_peso_kg: p.unidad_peso_kg ?? "",
-          unidad_vol_dm3: p.unidad_vol_dm3 ?? "",
-          bulto_unidades: p.bulto_unidades ?? "",
-          bulto_peso_kg: p.bulto_peso_kg ?? "",
-          bulto_vol_dm3: p.bulto_vol_dm3 ?? "",
-          imagenes: Array.isArray(p.imagenes) ? p.imagenes : [],
-          slug: p.slug,
-        });
-        setCats(Array.isArray(cRes.data) ? cRes.data : []);
+        // 1) categorías catálogo
+        const resCats = await fetch(`${API_BASE}/api/products/categorias/`);
+        const dataCats = resCats.ok ? await resCats.json() : [];
+        if (!abort) setCats(Array.isArray(dataCats) ? dataCats : []);
+
+        // 2) producto
+        const resProd = await fetch(`${API_BASE}/api/products/${id}/`);
+        if (!resProd.ok) throw new Error("No se pudo cargar el producto");
+        const p = await resProd.json();
+
+        // mapear campos
+        const categoriasDelProd = Array.isArray(p.categorias)
+          ? p.categorias.map((x) => (typeof x === "object" ? x.id : x))
+          : [];
+
+        if (!abort) {
+          setForm({
+            nombre: p.nombre || "",
+            descripcion: p.descripcion || "",
+            costo: p.costo ?? "",
+            precio_base: p.precio_base ?? p.precio ?? "",
+            stock: p.stock ?? "",
+            activo: p.activo ?? true,
+            proveedor: p.proveedor ?? "",
+            destacado: p.destacado ?? false,
+          });
+          setSelectedCatIds(categoriasDelProd);
+        }
       } catch (e) {
-        console.error(e);
-        toast("No pude cargar el producto");
+        if (!abort) setError(e.message || "Error inesperado");
+      } finally {
+        if (!abort) setLoading(false);
       }
-    })();
+    }
+
+    loadAll();
+    return () => {
+      abort = true;
+    };
   }, [id]);
 
-  const previews = useMemo(
-    () => nuevasImgs.map(f => ({ name: f.name, url: URL.createObjectURL(f) })),
-    [nuevasImgs]
-  );
+  function updateField(field, value) {
+    setForm((f) => ({ ...f, [field]: value }));
+  }
 
-  if (!form) return <div className="p-4">Cargando…</div>;
+  function toggleCat(id) {
+    setSelectedCatIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
 
-  const onChange = (e) => {
-    const { name, value } = e.target;
-    setForm((p) => ({ ...p, [name]: value }));
-  };
+  async function handleAddCategory(e) {
+    e?.preventDefault?.();
+    const nombre = prompt("Nombre de la nueva categoría:")?.trim();
+    if (!nombre) return;
 
-  const onSelectCats = (e) => {
-    const values = Array.from(e.target.selectedOptions).map(o => Number(o.value));
-    setForm(p => ({ ...p, categorias: values }));
-  };
+    try {
+      const res = await fetch(`${API_BASE}/api/products/categorias/crear/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ nombre }),
+      });
+      if (!res.ok) {
+        alert("No se pudo crear la categoría");
+        return;
+      }
+      const cat = await res.json(); // {id, nombre}
+      // agregar al catálogo si no está
+      setCats((prev) =>
+        prev.find((c) => c.id === cat.id) ? prev : [...prev, cat]
+      );
+      // marcarla seleccionada
+      setSelectedCatIds((prev) =>
+        prev.includes(cat.id) ? prev : [...prev, cat.id]
+      );
+    } catch {
+      alert("Error creando categoría");
+    }
+  }
 
-  const onFiles = (e) => {
-    const files = Array.from(e.target.files || []);
-    setNuevasImgs(files);
-  };
-
-  const guardar = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
-    setGuardando(true);
-    try {
-      const fd = new FormData();
-      // En PATCH mandamos SOLO lo editable (pero podés enviar todo)
-      ["nombre","descripcion","precio_base","costo","proveedor","stock",
-       "envio_modo","unidad_peso_kg","unidad_vol_dm3","bulto_unidades","bulto_peso_kg","bulto_vol_dm3"
-      ].forEach(k => {
-        if (form[k] !== "" && form[k] !== null && form[k] !== undefined) {
-          fd.append(k, form[k]);
-        }
-      });
-      form.categorias.forEach(id => fd.append("categorias", id));
-      await axiosInstance.patch(`products/productos/${id}/`, fd);
-      toast("Producto actualizado");
-    } catch (e) {
-      console.error(e);
-      toast(e?.response?.data?.error || "No se pudo actualizar");
-    } finally {
-      setGuardando(false);
-    }
-  };
+    setError("");
 
-  const subirImagenes = async () => {
-    if (!nuevasImgs.length) return toast("No seleccionaste imágenes");
-    setSubiendoImgs(true);
+    // Validaciones mínimas
+    if (!form.nombre?.trim()) return setError("Ingresá un nombre");
+    if (form.costo === "" || form.costo === null) return setError("Costo requerido");
+    if (form.precio_base === "" || form.precio_base === null) return setError("Precio del socio requerido");
+
+    setSaving(true);
     try {
-      const fdImg = new FormData();
-      nuevasImgs.forEach(f => fdImg.append("imagenes", f));
-      const { data } = await axiosInstance.post(`products/productos/${id}/subir_imagenes/`, fdImg, {
-        headers: { "Content-Type": "multipart/form-data" },
+      // armamos payload
+      const payload = {
+        nombre: form.nombre,
+        descripcion: form.descripcion,
+        costo: Number(form.costo),
+        precio_base: Number(form.precio_base),
+        stock: Number.isNaN(Number(form.stock)) ? form.stock : Number(form.stock),
+        activo: !!form.activo,
+        proveedor: form.proveedor,
+        destacado: !!form.destacado,
+        categorias: selectedCatIds, // mandamos ids
+      };
+
+      const res = await fetch(`${API_BASE}/api/products/${id}/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
       });
-      // refrescar lista local
-      setForm(p => ({ ...p, imagenes: [...p.imagenes, ...data] }));
-      setNuevasImgs([]);
-      toast("Imágenes subidas");
+
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`Error al guardar: ${txt || res.status}`);
+      }
+      navigate("/mi-cuenta/productos"); // o donde corresponda
     } catch (e) {
-      console.error(e);
-      toast(e?.response?.data?.error || "No se pudo subir imágenes");
+      setError(e.message || "Error guardando");
     } finally {
-      setSubiendoImgs(false);
+      setSaving(false);
     }
-  };
+  }
+
+  if (loading) return <div className="p-4">Cargando…</div>;
 
   return (
-    <div className="max-w-3xl mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-semibold">Editar producto #{id}</h1>
+    <div className="max-w-3xl mx-auto p-4">
+      <h1 className="text-xl font-semibold mb-4">Editar producto</h1>
 
-      <form onSubmit={guardar} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <label className="flex flex-col">
-            <span className="text-sm mb-1">Nombre</span>
-            <input className="border rounded px-3 py-2" name="nombre" value={form.nombre} onChange={onChange} />
-          </label>
-          <label className="flex flex-col">
-            <span className="text-sm mb-1">Proveedor</span>
-            <input className="border rounded px-3 py-2" name="proveedor" value={form.proveedor} onChange={onChange} />
-          </label>
+      {error && (
+        <div className="mb-3 rounded border border-red-300 bg-red-50 text-red-800 px-3 py-2 text-sm">
+          {error}
+        </div>
+      )}
 
-          <label className="md:col-span-2 flex flex-col">
-            <span className="text-sm mb-1">Descripción</span>
-            <textarea className="border rounded px-3 py-2" rows={3} name="descripcion" value={form.descripcion} onChange={onChange} />
-          </label>
-
-          <label className="flex flex-col">
-            <span className="text-sm mb-1">Precio del socio (base)</span>
-            <input type="number" step="0.01" className="border rounded px-3 py-2" name="precio_base" value={form.precio_base} onChange={onChange} />
-          </label>
-          <label className="flex flex-col">
-            <span className="text-sm mb-1">Costo</span>
-            <input type="number" step="0.01" className="border rounded px-3 py-2" name="costo" value={form.costo} onChange={onChange} />
-          </label>
-          <label className="flex flex-col">
-            <span className="text-sm mb-1">Stock</span>
-            <input type="number" className="border rounded px-3 py-2" name="stock" value={form.stock} onChange={onChange} />
-          </label>
-
-          <label className="flex flex-col md:col-span-1">
-            <span className="text-sm mb-1">Categorías</span>
-            <select multiple className="border rounded px-3 py-2 h-40" value={form.categorias} onChange={onSelectCats}>
-              {cats.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-            </select>
-            <span className="text-xs text-gray-500 mt-1">Ctrl/Cmd + click para seleccionar varias</span>
-          </label>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium">Nombre</label>
+          <input
+            className="w-full border rounded px-3 py-2"
+            value={form.nombre}
+            onChange={(e) => updateField("nombre", e.target.value)}
+            required
+          />
         </div>
 
-        {/* ENVÍO */}
-        {/* CATEGORÍAS */}
-<div className="md:col-span-1 flex flex-col gap-2">
-  <span className="text-sm">Categorías *</span>
-  <select multiple className="border rounded px-3 py-2 h-40" value={form.categorias} onChange={onSelectCats}>
-    {(cats || []).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-  </select>
-  <span className="text-xs text-gray-500">Ctrl/Cmd + click para seleccionar varias</span>
-  <div className="flex items-center gap-2">
-    <input
-      className="border rounded px-3 py-2 flex-1"
-      placeholder="Nueva categoría"
-      value={newCatName}
-      onChange={(e)=>setNewCatName(e.target.value)}
-      onKeyDown={(e)=>{ if (e.key==='Enter'){ e.preventDefault(); addNewCategory(); } }}
-    />
-    <button
-      type="button"
-      onClick={addNewCategory}
-      disabled={creatingCat}
-      className="px-3 py-2 bg-black text-white rounded hover:opacity-90 disabled:opacity-60"
-    >
-      {creatingCat ? "Agregando..." : "Agregar"}
-    </button>
-  </div>
-</div>
-<div className="border rounded p-3 space-y-3">
-          <div className="font-medium">Envío</div>
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2">
-              <input type="radio" name="envio_modo" value="unidad" checked={form.envio_modo==="unidad"} onChange={onChange}/>
-              Por unidad
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="radio" name="envio_modo" value="bulto" checked={form.envio_modo==="bulto"} onChange={onChange}/>
-              Por bulto
-            </label>
+        <div>
+          <label className="block text-sm font-medium">Descripción</label>
+          <textarea
+            className="w-full border rounded px-3 py-2"
+            value={form.descripcion}
+            onChange={(e) => updateField("descripcion", e.target.value)}
+            rows={4}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-sm font-medium">Costo (obligatorio)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              className="w-full border rounded px-3 py-2"
+              value={form.costo}
+              onChange={(e) => updateField("costo", e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Precio socio</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              className="w-full border rounded px-3 py-2"
+              value={form.precio_base}
+              onChange={(e) => updateField("precio_base", e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Stock</label>
+            <input
+              type="number"
+              step="1"
+              className="w-full border rounded px-3 py-2"
+              value={form.stock}
+              onChange={(e) => updateField("stock", e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={!!form.activo}
+              onChange={(e) => updateField("activo", e.target.checked)}
+            />
+            Activo
+          </label>
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={!!form.destacado}
+              onChange={(e) => updateField("destacado", e.target.checked)}
+            />
+            Destacado
+          </label>
+          <div>
+            <label className="block text-sm font-medium">Proveedor</label>
+            <input
+              className="w-full border rounded px-3 py-2"
+              value={form.proveedor}
+              onChange={(e) => updateField("proveedor", e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Categorías */}
+        <div>
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium">Categorías</label>
+            <button
+              type="button"
+              onClick={handleAddCategory}
+              className="text-sm px-2 py-1 rounded bg-blue-600 text-white"
+            >
+              + Nueva categoría
+            </button>
           </div>
 
-          {form.envio_modo === "unidad" ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label className="flex flex-col">
-                <span className="text-sm mb-1">Peso por unidad (kg)</span>
-                <input type="number" step="0.001" className="border rounded px-3 py-2" name="unidad_peso_kg" value={form.unidad_peso_kg} onChange={onChange} />
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {cats.map((c) => (
+              <label
+                key={c.id}
+                className="flex items-center gap-2 border rounded px-3 py-2 hover:bg-gray-50 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedCatIds.includes(c.id)}
+                  onChange={() => toggleCat(c.id)}
+                />
+                <span>{c.nombre || c.name}</span>
               </label>
-              <label className="flex flex-col">
-                <span className="text-sm mb-1">Volumen por unidad (dm³)</span>
-                <input type="number" step="0.001" className="border rounded px-3 py-2" name="unidad_vol_dm3" value={form.unidad_vol_dm3} onChange={onChange} />
-              </label>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <label className="flex flex-col">
-                <span className="text-sm mb-1">Unidades por bulto</span>
-                <input type="number" className="border rounded px-3 py-2" name="bulto_unidades" value={form.bulto_unidades} onChange={onChange} />
-              </label>
-              <label className="flex flex-col">
-                <span className="text-sm mb-1">Peso por bulto (kg)</span>
-                <input type="number" step="0.001" className="border rounded px-3 py-2" name="bulto_peso_kg" value={form.bulto_peso_kg} onChange={onChange} />
-              </label>
-              <label className="flex flex-col">
-                <span className="text-sm mb-1">Volumen por bulto (dm³)</span>
-                <input type="number" step="0.001" className="border rounded px-3 py-2" name="bulto_vol_dm3" value={form.bulto_vol_dm3} onChange={onChange} />
-              </label>
-            </div>
-          )}
-        </div>
-
-        {/* IMÁGENES ACTUALES */}
-        {!!form.imagenes?.length && (
-          <div className="border rounded p-3">
-            <div className="font-medium mb-2">Imágenes actuales</div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-              {form.imagenes.map(img => (
-                <div key={img.id} className="aspect-square border rounded overflow-hidden">
-                  <img src={img.url} alt={`img-${img.id}`} className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
+            ))}
+            {cats.length === 0 && (
+              <div className="text-sm text-gray-500">No hay categorías</div>
+            )}
           </div>
-        )}
-
-        {/* NUEVAS IMÁGENES */}
-        <div className="border rounded p-3 space-y-2">
-          <div className="font-medium">Agregar imágenes (jpg/png/webp)</div>
-          <input type="file" accept="image/*" multiple onChange={onFiles} />
-          {previews?.length > 0 && (
-            <>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mt-2">
-                {previews.map(p => (
-                  <div key={p.url} className="aspect-square border rounded overflow-hidden">
-                    <img src={p.url} alt={p.name} className="w-full h-full object-cover"/>
-                  </div>
-                ))}
-              </div>
-              <button type="button" disabled={subiendoImgs} onClick={subirImagenes}
-                className="px-4 py-2 bg-black text-white rounded hover:opacity-90">
-                {subiendoImgs ? "Subiendo..." : "Subir nuevas imágenes"}
-              </button>
-            </>
-          )}
         </div>
 
-        <div className="flex justify-end">
-          <button disabled={guardando} className="px-4 py-2 bg-black text-white rounded hover:opacity-90">
-            {guardando ? "Guardando..." : "Guardar cambios"}
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-4 py-2 rounded bg-green-600 text-white disabled:opacity-60"
+          >
+            {saving ? "Guardando…" : "Guardar"}
+          </button>
+          <button
+            type="button"
+            className="px-4 py-2 rounded border"
+            onClick={() => navigate(-1)}
+          >
+            Cancelar
           </button>
         </div>
       </form>
