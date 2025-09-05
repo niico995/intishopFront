@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const baseURL =
-  (import.meta.env.VITE_API_URL?.replace(/\/?$/, '/')) // debe terminar con /
-  || 'https://intishopback.onrender.com/api/'; // 👈 en local: HTTP
+  (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '') // debe terminar con /
+  || 'https://intishopback.onrender.com'; // 👈 en local: HTTP
 
 const axiosPublic = axios.create({
   baseURL,

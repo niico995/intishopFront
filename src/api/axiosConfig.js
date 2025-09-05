@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: 'https://intishopback.onrender.com/api/',
+  baseURL: (import.meta.env.VITE_API_URL || 'https://intishopback.onrender.com').replace(/\/+$/, ''),
   withCredentials: false,
   timeout: 15000,
 });

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "../lib/api";
+import axiosInstance from "../api/axiosConfig";
 
 function CategoriesMenu() {
   const [open, setOpen] = useState(false);
@@ -12,7 +12,7 @@ function CategoriesMenu() {
 
     (async () => {
       try {
-        const data = await api("/api/products/categorias/");
+        const { data } = await axiosInstance.get("/api/products/categorias/");
         if (!abort) setCats(Array.isArray(data) ? data : []);
       } catch (err) {
         // no rompemos la UI si falla

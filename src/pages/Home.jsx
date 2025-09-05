@@ -473,7 +473,7 @@ export default function Home() {
       setLoading(true);
       setErrMsg("");
       try {
-        const data = await api("/api/products/home/destacados/");
+        const { data } = await axiosInstance.get("/api/products/home/destacados/");
         if (abort) return;
         setPro(data?.pro || []);
         setOtros(data?.otros || []);
