@@ -1,30 +1,18 @@
-import { useState } from "react";
+import React, { useState } from "react";
 
-export default function AddToCartButton({ onClick, disabled, className = "", children = "Agregar al carrito" }) {
-  const [added, setAdded] = useState(false);
-
-  const handle = async (e) => {
+export default function AddToCartButton({ onAdd, disabled, className = "", children = "Agregar al carrito" }) {
+  const [ok, setOk] = useState(false);
+  const click = async () => {
     if (disabled) return;
-    try {
-      const maybePromise = onClick && onClick(e);
-      // Soporta onClick async
-      if (maybePromise && typeof maybePromise.then === "function") {
-        await maybePromise;
-      }
-      setAdded(true);
-      setTimeout(() => setAdded(false), 700);
-    } catch (_) {
-      // no cambies a verde si falla, igual reseteamos
-      setAdded(false);
-    }
+    await (onAdd?.());
+    setOk(true);
+    setTimeout(() => setOk(false), 700);
   };
-
   return (
     <button
-      type="button"
-      onClick={handle}
+      onClick={click}
       disabled={disabled}
-      className={`px-4 py-2 rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-700 ${added ? "bg-green-600" : "bg-black"} ${className}`}
+      className={`px-4 py-3 rounded-md border transition-colors ${ok ? "bg-green-600 text-white border-green-600" : "border-gray-200 hover:bg-gray-50"} ${className}`}
     >
       {children}
     </button>

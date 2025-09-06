@@ -1,35 +1,25 @@
-// src/api/axiosConfig.js
 import axios from "axios";
 
-const raw = import.meta.env.VITE_API_URL || "https://intishopback.onrender.com";
-const base = raw.replace(/\/+$/, "").replace(/\/api$/i, "");
+// Base del backend (sin barra final). Ej: https://intishopback.onrender.com/api
+const base = (import.meta?.env?.VITE_API_URL || "").replace(/\/$/, "");
 
 const axiosInstance = axios.create({
-  baseURL: base,
+  baseURL: base || "/",
   withCredentials: false,
-  headers: { "Content-Type": "application/json" },
 });
 
-
-axiosInstance.interceptors.request.use((cfg) => {
-  let b = (cfg.baseURL || "").replace(/\/+$/, "");
-  let u = (cfg.url || "").replace(/^\/*/, "/");
-  if (/\/api$/i.test(b) && /^\/api(\/|$)/i.test(u)) {
-    b = b.replace(/\/api$/i, "");
-    cfg.baseURL = b;
+// Normaliza rutas mal formadas (evita /api/api/...)
+axiosInstance.interceptors.request.use((config) => {
+  if (config?.url?.startsWith?.("/api/api")) {
+    config.url = config.url.replace("/api/api", "/api");
   }
-  cfg.url = u;
-  return cfg;
+  return config;
 });
 
-
-try {
-  if (typeof window !== "undefined") {
-    // Exponer por compatibilidad con código legado
-    window.axiosInstance = axiosInstance;
-    // api(...) se comporta como axiosInstance(...)
-    if (!window.api) window.api = axiosInstance;
-  }
-} catch {}
+// Compatibilidad con código viejo
+if (typeof window !== "undefined") {
+  window.axiosInstance = axiosInstance;
+  window.api = axiosInstance;
+}
 
 export default axiosInstance;
