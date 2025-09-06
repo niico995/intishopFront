@@ -295,7 +295,7 @@
 // //         {/* IMÁGENES */}
 // //         <div className="border rounded p-3 space-y-2">
 // //           <div className="font-medium">Imágenes (jpg/png/webp, sin conversión)</div>
-// //           <input type="file" accept="image/*" multiple onChange={onFiles}/>
+// //           <input type="file" accept="image/jpeg,image/png,image/webp,image/jpg,image/avif,image/gif" multiple onChange={onFiles}/>
 // //           {previews?.length > 0 && (
 // //             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mt-2">
 // //               {previews.map(p => (
@@ -775,7 +775,7 @@ export default function CargarProducto() {
         {/* IMÁGENES */}
         <div className="border rounded p-3 space-y-2">
           <div className="font-medium">Imágenes (jpg/png/webp, sin conversión)</div>
-          <input type="file" accept="image/*" multiple onChange={onFiles}/>
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/jpg,image/avif,image/gif" multiple onChange={onFiles}/>
           {previews?.length > 0 && (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mt-2">
               {previews.map(p => (

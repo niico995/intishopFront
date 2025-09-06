@@ -79,7 +79,7 @@
 //           <span>Comprobante (imagen)</span>
 //           <input
 //             type="file"
-//             accept="image/*"
+//             accept="image/jpeg,image/png,image/webp,image/jpg,image/avif,image/gif"
 //             onChange={(e) => setFile(e.target.files?.[0] || null)}
 //           />
 //           {comprobanteUrl && (
@@ -188,7 +188,7 @@ export default function SocioPerfilBancario() {
           <span>Comprobante (imagen)</span>
           <input
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/jpg,image/avif,image/gif"
             onChange={(e) => setFile(e.target.files?.[0] || null)}
           />
           {comprobanteUrl && (
