@@ -1,4 +1,8 @@
 // // // // src/pages/Home.jsx
+
+// Cliente API tolerante a diferencias de import/global
+const __api = (typeof axiosInstance !== 'undefined' && axiosInstance) || (typeof window !== 'undefined' && window.axiosInstance);
+
 // // // import { useEffect, useState } from "react";
 // // // import axios from "../api/axiosConfig";
 // // // import ProductCard from "../components/PorductCard";
@@ -7,7 +11,7 @@
 // // //   const [data, setData] = useState(null);
 
 // // //   useEffect(() => {
-// // //     axios.get("products/home/destacados/").then(r => setData(r.data)).catch(() => setData(null));
+// // //     __api.get("products/home/destacados/").then(r => setData(r.data)).catch(() => setData(null));
 // // //   }, []);
 
 // // //   if (!data) return <div className="max-w-6xl mx-auto p-4">Cargando…</div>;
@@ -473,7 +477,7 @@ export default function Home() {
       setLoading(true);
       setErrMsg("");
       try {
-        const data = await axiosInstance.get("/api/products/home/destacados/");
+        const data = await __api.get("/api/products/home/destacados/");
         if (abort) return;
         setPro(data?.pro || []);
         setOtros(data?.otros || []);
