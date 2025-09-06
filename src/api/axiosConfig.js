@@ -10,6 +10,7 @@ const axiosInstance = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+
 axiosInstance.interceptors.request.use((cfg) => {
   let b = (cfg.baseURL || "").replace(/\/+$/, "");
   let u = (cfg.url || "").replace(/^\/*/, "/");
@@ -20,5 +21,15 @@ axiosInstance.interceptors.request.use((cfg) => {
   cfg.url = u;
   return cfg;
 });
+
+
+try {
+  if (typeof window !== "undefined") {
+    // Exponer por compatibilidad con código legado
+    window.axiosInstance = axiosInstance;
+    // api(...) se comporta como axiosInstance(...)
+    if (!window.api) window.api = axiosInstance;
+  }
+} catch {}
 
 export default axiosInstance;

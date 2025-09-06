@@ -4,6 +4,7 @@ import axiosInstance from "../api/axiosConfig";
 import { useCart } from "./CartContext";
 import { useAuth } from "../context/AuthContext";
 
+/* Menú de categorías: click/touch abre, overlay para cerrar, hover en desktop */
 function CategoriesMenu() {
   const [open, setOpen] = useState(false);
   const [cats, setCats] = useState([]);
@@ -19,13 +20,13 @@ function CategoriesMenu() {
         console.error("Categorias error:", err?.message || err);
       }
     })();
-    const onDown = (ev) => {
+    const closeOnOutside = (ev) => {
       if (menuRef.current && !menuRef.current.contains(ev.target)) setOpen(false);
     };
-    document.addEventListener("mousedown", onDown);
+    document.addEventListener("mousedown", closeOnOutside);
     return () => {
       abort = true;
-      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("mousedown", closeOnOutside);
     };
   }, []);
 
@@ -35,14 +36,14 @@ function CategoriesMenu() {
       className="relative"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
-      onClick={() => setOpen((v) => !v)}
-      onTouchStart={() => setOpen((v) => !v)}
     >
       <button
         type="button"
         className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50"
         aria-haspopup="true"
         aria-expanded={open ? "true" : "false"}
+        onClick={() => setOpen((v) => !v)}
+        onTouchStart={() => setOpen((v) => !v)}
       >
         Categorías
         <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true">
@@ -50,8 +51,13 @@ function CategoriesMenu() {
         </svg>
       </button>
 
+      {/* Overlay para mobile */}
       {open && (
-        <ul className="absolute left-0 mt-2 w-72 max-h-[70vh] overflow-auto bg-white shadow-lg rounded-lg z-50 p-2 ring-1 ring-black/5">
+        <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setOpen(false)} />
+      )}
+
+      {open && (
+        <ul className="absolute left-0 mt-2 w-80 max-h-[70vh] overflow-auto bg-white shadow-xl rounded-lg z-50 p-2 ring-1 ring-black/5">
           {cats.length === 0 && (
             <li className="px-3 py-2 text-sm text-gray-500">Sin categorías</li>
           )}
@@ -79,7 +85,6 @@ export default function NavBar() {
   const [q, setQ] = useState("");
 
   const count = items.reduce((acc, it) => acc + Number(it.qty || 1), 0);
-
   const doSearch = (e) => {
     e?.preventDefault();
     const term = (q || "").trim();
@@ -89,19 +94,19 @@ export default function NavBar() {
 
   return (
     <header className="w-full bg-white border-b border-gray-200 sticky top-0 z-40">
-      <div className="mx-auto max-w-7xl px-4 py-3 flex items-center gap-3">
+      <div className="mx-auto max-w-7xl px-4 py-3 grid grid-cols-12 gap-3 items-center">
         {/* Logo */}
-        <div className="flex items-center">
-          <Link to="/" className="text-lg font-semibold tracking-tight">IntiShop</Link>
+        <div className="col-span-12 sm:col-span-2">
+          <Link to="/" className="text-lg font-semibold tracking-tight block">IntiShop</Link>
         </div>
 
-        {/* Categorías (lg) */}
-        <div className="hidden lg:block">
+        {/* Categorías */}
+        <div className="col-span-6 sm:col-span-2">
           <CategoriesMenu />
         </div>
 
         {/* Search */}
-        <form onSubmit={doSearch} className="flex-1 flex items-center gap-2">
+        <form onSubmit={doSearch} className="col-span-6 sm:col-span-5 flex items-center gap-2">
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -118,10 +123,10 @@ export default function NavBar() {
         </form>
 
         {/* Acciones */}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="col-span-12 sm:col-span-3 flex justify-end items-center gap-2">
           <Link
             to="/registro/socio"
-            className="hidden sm:inline-flex px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50"
+            className="hidden lg:inline-flex px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50"
           >
             Quiero ser socio
           </Link>
@@ -142,11 +147,6 @@ export default function NavBar() {
               {count}
             </span>
           </Link>
-
-          {/* Categorías botón en mobile */}
-          <div className="lg:hidden">
-            <CategoriesMenu />
-          </div>
         </div>
       </div>
     </header>
