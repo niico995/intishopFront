@@ -1,33 +1,52 @@
-import axios from "axios";
+import axios from 'axios';
 
-// Base del backend (sin barra final). Ej: https://intishopback.onrender.com/api
-const base = (import.meta?.env?.VITE_API_URL || "").replace(/\/$/, "");
+/** Intenta leer el access token con varios nombres comunes */
+function getAccessToken() {
+  const direct =
+    localStorage.getItem('accessToken') ||
+    localStorage.getItem('token');
 
-// Cliente
-const axiosInstance = axios.create({
-  baseURL: base || "/",
+  if (direct) return direct;
+
+  try {
+    const parsed = JSON.parse(localStorage.getItem('authTokens') || '{}');
+    return parsed.access || parsed.token || '';
+  } catch {
+    return '';
+  }
+}
+
+/** Normaliza la URL para evitar api/api o quedarnos sin /api */
+function normalizeBaseUrl(raw) {
+  let u = (raw || '').trim();
+  if (!u) return 'https://intishopback.onrender.com/api'; // fallback seguro
+  u = u.replace(/\/+$/, ''); // quita barras al final
+
+  // Si es absoluta, asegurá que termine en /api
+  if (/^https?:\/\//i.test(u)) {
+    if (!/\/api$/i.test(u)) u += '/api';
+  }
+  // Si alguien puso "/api" relativo, lo dejamos tal cual.
+  return u;
+}
+
+const baseURL = normalizeBaseUrl(
+  import.meta.env.VITE_API_URL || 'https://intishopback.onrender.com'
+);
+
+export const axiosInstance = axios.create({
+  baseURL,
   withCredentials: false,
 });
 
-// --- Normalizador de rutas ---
-// Evita /api/api/... y también corrige si mandan la URL sin slash inicial.
+/** Interceptor: agrega Authorization si hay token */
 axiosInstance.interceptors.request.use((config) => {
-  let u = config.url || "";
-  if (typeof u === "string") {
-    // asegurar leading slash
-    if (!u.startsWith("/")) u = "/" + u;
-    // si viene /api/... lo pasamos a /...
-    u = u.replace(/^\/+api\/+/i, "/");
-    // compactar múltiples slashes (excepto el de https://)
-    u = u.replace(/([^:])\/{2,}/g, "$1/");
-    config.url = u;
+  const token = getAccessToken();
+  if (token && !config.headers?.Authorization) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
-
-if (typeof window !== "undefined") {
-  window.axiosInstance = axiosInstance;
-  window.api = axiosInstance; // compat legacy
-}
 
 export default axiosInstance;

@@ -4,6 +4,8 @@ import { useCart } from "./CartContext";
 import { useAuth } from "../context/AuthContext";
 import { getCategorias } from "../api/products";
 
+import compatApi from '../lib/compatApi';
+if (typeof window !== 'undefined') window.api = compatApi;
 /** Badge carrito */
 function CartBadge({ count = 0 }) {
   return (
