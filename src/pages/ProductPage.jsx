@@ -11,6 +11,37 @@ const fmt = (v) =>
     maximumFractionDigits: 2,
   });
 
+function getSellerId(p) {
+  return (
+    p.seller_id ??
+    p.sellerId ??
+    p.sellerID ??
+    p?.seller?.id ??
+    p.tienda_id ??
+    p?.tienda?.id ??
+    p.vendedor_id ??
+    p?.vendedor?.id ??
+    null
+  );
+}
+
+function getSellerName(p) {
+  return (
+    p.seller_nombre ??
+    p.sellerName ??
+    p?.seller?.nombre_fantasia ??
+    p?.seller?.name ??
+    p?.seller?.username ??
+    p.tienda_nombre ??
+    p?.tienda?.nombre_fantasia ??
+    p?.tienda?.nombre ??
+    p.vendedor_nombre ??
+    p?.vendedor?.nombre ??
+    p.proveedor ??
+    ""
+  );
+}
+
 export default function ProductPage() {
   const { id } = useParams();
   const [p, setP] = useState(null);
@@ -60,17 +91,12 @@ export default function ProductPage() {
   const maxQty = stockValue ?? 99;
   const sinStock = stockValue !== null ? stockValue <= 0 : false;
 
-  const clamp = (n) => {
-    const v = Number.isFinite(n) ? n : 1;
-    return Math.min(Math.max(1, v), Math.max(1, maxQty));
-  };
-
+  const clamp = (n) => Math.min(Math.max(1, Number.isFinite(n) ? n : 1), Math.max(1, maxQty));
   const onMinus = () => setQty((q) => clamp(q - 1));
   const onPlus  = () => setQty((q) => clamp(q + 1));
   const onChange = (e) => {
     const onlyDigits = String(e.target.value || "1").replace(/\D+/g, "");
-    const parsed = parseInt(onlyDigits || "1", 10);
-    setQty(clamp(parsed));
+    setQty(clamp(parseInt(onlyDigits || "1", 10)));
   };
 
   const addToCart = () => {
@@ -79,9 +105,9 @@ export default function ProductPage() {
       {
         id: p.id,
         nombre: p.nombre,
-        precio: p.precio, // ya viene x1.5
+        precio: p.precio,
         imagen_principal: principal || p.imagen_principal || null,
-        seller_id: p.seller_id || p.seller?.id || undefined,
+        seller_id: getSellerId(p) || undefined,
       },
       qty
     );
@@ -98,8 +124,8 @@ export default function ProductPage() {
 
   const precio = p.precio ?? 0;
   const cuota4 = precio / 4;
-  const sellerId = p.seller_id || p.seller?.id || null;
-  const sellerName = p.seller_nombre || p.seller?.nombre_fantasia || "";
+  const sellerId = getSellerId(p);
+  const sellerName = getSellerName(p);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 grid md:grid-cols-2 gap-8">
@@ -147,10 +173,10 @@ export default function ProductPage() {
               className="hover:underline"
               title="Ver vendedor"
             >
-              {sellerName}
+              {sellerName || "Vendedor"}
             </Link>
           ) : (
-            sellerName
+            sellerName || ""
           )}
         </div>
 

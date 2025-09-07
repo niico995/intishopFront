@@ -1,14 +1,20 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { HelmetProvider } from 'react-helmet-async'
-import './index.css'
-import './lib/compatApi'
-import App from './App.jsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { HelmetProvider } from "react-helmet-async";
+import "./index.css";
+import "./lib/compatApi";
+import App from "./App.jsx";
 
-createRoot(document.getElementById('root')).render(
+// 👇 importar el provider del carrito
+import { CartProvider } from "./components/CartContext";
+
+createRoot(document.getElementById("root")).render(
   <StrictMode>
     <HelmetProvider>
-      <App />
+      {/* 👇 envolver toda la app */}
+      <CartProvider>
+        <App />
+      </CartProvider>
     </HelmetProvider>
-  </StrictMode>,
-)
+  </StrictMode>
+);

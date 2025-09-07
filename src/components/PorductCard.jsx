@@ -10,6 +10,38 @@ const fmt = (v) =>
     maximumFractionDigits: 2,
   });
 
+// ------ helpers robustos para vendedor ------
+function getSellerId(p) {
+  return (
+    p.seller_id ??
+    p.sellerId ??
+    p.sellerID ??
+    p?.seller?.id ??
+    p.tienda_id ??
+    p?.tienda?.id ??
+    p.vendedor_id ??
+    p?.vendedor?.id ??
+    null
+  );
+}
+
+function getSellerName(p) {
+  return (
+    p.seller_nombre ??
+    p.sellerName ??
+    p?.seller?.nombre_fantasia ??
+    p?.seller?.name ??
+    p?.seller?.username ??
+    p.tienda_nombre ??
+    p?.tienda?.nombre_fantasia ??
+    p?.tienda?.nombre ??
+    p.vendedor_nombre ??
+    p?.vendedor?.nombre ??
+    p.proveedor ?? // a veces usan proveedor como “nombre comercial”
+    ""
+  );
+}
+
 export default function ProductCard({ product }) {
   const { addItem } = useCart();
 
@@ -23,45 +55,38 @@ export default function ProductCard({ product }) {
       : null) ||
     null;
 
-  // Vendedor (para link opcional)
-  const sellerId =
-    product.seller_id ?? product.seller?.id ?? product.sellerId ?? null;
-  const sellerName =
-    product.seller_nombre ?? product.seller?.nombre_fantasia ?? "-";
+  // Vendedor
+  const sellerId = getSellerId(product);
+  const sellerName = getSellerName(product) || "-";
 
   // Precio final (ya x1.5) + cuotas
   const precio = product.precio ?? product.precio_base ?? 0;
   const cuota4 = precio / 4;
 
-  // Stock y cantidad
+  // Stock y cantidad (límite por stock si está)
   const stockValue = useMemo(
     () => (typeof product?.stock === "number" ? Math.max(0, product.stock) : null),
     [product]
   );
-  const maxQty = stockValue ?? 99;              // si no viene stock, tope 99
+  const maxQty = stockValue ?? 99;
   const sinStock = stockValue !== null ? stockValue <= 0 : false;
 
   const [qty, setQty] = useState(1);
-
-  const clamp = (n) => {
-    const v = Number.isFinite(n) ? n : 1;
-    return Math.min(Math.max(1, v), Math.max(1, maxQty));
-  };
+  const clamp = (n) => Math.min(Math.max(1, Number.isFinite(n) ? n : 1), Math.max(1, maxQty));
 
   const onMinus = () => setQty((q) => clamp(q - 1));
   const onPlus  = () => setQty((q) => clamp(q + 1));
   const onChange = (e) => {
     const onlyDigits = String(e.target.value || "1").replace(/\D+/g, "");
-    const parsed = parseInt(onlyDigits || "1", 10);
-    setQty(clamp(parsed));
+    setQty(clamp(parseInt(onlyDigits || "1", 10)));
   };
 
   const addToCart = () => {
     if (sinStock) return;
     addItem(
       {
-        id: product.id,
-        nombre: product.nombre,
+        id: product.id ?? product.producto_id ?? product.slug,
+        nombre: product.nombre ?? product.title ?? "Producto",
         precio,
         imagen_principal: img,
         seller_id: sellerId || undefined,
@@ -89,6 +114,7 @@ export default function ProductCard({ product }) {
           <Link
             to={`/vendedor/${sellerId}`}
             className="text-[11px] uppercase tracking-wide text-gray-500 hover:underline"
+            title="Ver vendedor"
           >
             {sellerName}
           </Link>
@@ -107,7 +133,7 @@ export default function ProductCard({ product }) {
         </Link>
 
         <div className="text-lg font-semibold mt-0.5">${fmt(precio)}</div>
-        <div className="text-xs text-gray-500">En 4 cuotas de ${fmt(cuota4)}</div>
+        <div className="text-xs text-gray-500">En 4 cuotas de ${fmt(precio / 4)}</div>
 
         <div className="mt-2 flex items-center gap-2">
           <div className="inline-flex items-center border rounded-lg overflow-hidden">

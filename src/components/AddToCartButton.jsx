@@ -1,20 +1,33 @@
-import React, { useState } from "react";
+// src/components/AddToCartButton.jsx
+import React from "react";
+import { useCart } from "./CartContext";
 
-export default function AddToCartButton({ onAdd, disabled, className = "", children = "Agregar al carrito" }) {
-  const [ok, setOk] = useState(false);
-  const click = async () => {
+/**
+ * Botón genérico.
+ * - Si le pasás onClick => lo ejecuta.
+ * - Si NO le pasás onClick, pero sí { product, qty }, agrega al carrito por su cuenta.
+ */
+export default function AddToCartButton({ onClick, product, qty = 1, disabled = false, className = "" }) {
+  const { addItem } = useCart();
+
+  const handle = () => {
     if (disabled) return;
-    await (onAdd?.());
-    setOk(true);
-    setTimeout(() => setOk(false), 700);
+    if (typeof onClick === "function") return onClick();
+    if (product) return addItem(product, qty);
   };
+
   return (
     <button
-      onClick={click}
+      type="button"
+      onClick={handle}
       disabled={disabled}
-      className={`px-4 py-3 rounded-md border transition-colors ${ok ? "bg-green-600 text-white border-green-600" : "border-gray-200 hover:bg-gray-50"} ${className}`}
+      className={
+        "px-4 py-2 rounded-lg bg-black text-white disabled:opacity-50 hover:opacity-90 transition " +
+        className
+      }
+      aria-label="Agregar al carrito"
     >
-      {children}
+      Agregar al carrito
     </button>
   );
 }
