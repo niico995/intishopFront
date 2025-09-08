@@ -1,117 +1,132 @@
+// // src/context/CartContext.jsx
+// import { createContext, useContext, useEffect, useMemo, useState } from "react";
+
+// const CartContext = createContext();
+
+// export function CartProvider({ children }) {
+//   const [items, setItems] = useState(() => {
+//     try { return JSON.parse(localStorage.getItem("cart") || "[]"); } catch { return []; }
+//   });
+
+//   useEffect(() => {
+//     localStorage.setItem("cart", JSON.stringify(items));
+//   }, [items]);
+
+//   // También reaccionar a cambios en otras pestañas
+//   useEffect(() => {
+//     const onStorage = (e) => {
+//       if (e.key === "cart") {
+//         try { setItems(JSON.parse(e.newValue || "[]")); } catch {}
+//       }
+//     };
+//     window.addEventListener("storage", onStorage);
+//     return () => window.removeEventListener("storage", onStorage);
+//   }, []);
+
+//   const add = (item, qty = 1) => {
+//     setItems(prev => {
+//       const idx = prev.findIndex(x => x.id === item.id);
+//       if (idx >= 0) {
+//         const copy = [...prev];
+//         copy[idx] = { ...copy[idx], qty: copy[idx].qty + qty };
+//         return copy;
+//       }
+//       return [...prev, { ...item, qty }];
+//     });
+//   };
+//   const remove = (id) => setItems(prev => prev.filter(x => x.id !== id));
+//   const updateQty = (id, qty) =>
+//     setItems(prev => prev.map(x => x.id === id ? { ...x, qty: Math.max(1, qty) } : x));
+//   const clear = () => setItems([]);
+
+//   const count = useMemo(() => items.reduce((acc, it) => acc + it.qty, 0), [items]);
+//   const total = useMemo(() => items.reduce((acc, it) => acc + (Number(it.precio) * it.qty), 0), [items]);
+
+//   return (
+//     <CartContext.Provider value={{ items, add, remove, updateQty, clear, count, total }}>
+//       {children}
+//     </CartContext.Provider>
+//   );
+// }
+
+// export const useCart = () => useContext(CartContext);
 // src/components/CartContext.jsx
-import React, { createContext, useContext, useEffect, useMemo, useReducer } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { toast } from "../utils/notify";
 
-const CartContext = createContext(null);
-const STORAGE_KEY = "cart_v1";
-
-function loadInitial() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : null;
-    if (parsed && Array.isArray(parsed.items)) return parsed;
-  } catch {}
-  return { items: [] };
-}
-
-function save(state) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {}
-}
-
-function reducer(state, action) {
-  switch (action.type) {
-    case "ADD": {
-      const { product, qty } = action.payload;
-      const id = product.id ?? product.producto_id ?? product.slug;
-      if (!id) return state;
-
-      const next = structuredClone(state);
-      const idx = next.items.findIndex((it) => it.id === id);
-
-      if (idx >= 0) {
-        next.items[idx].qty = Math.min(999, (next.items[idx].qty || 0) + qty);
-        // actualizamos info por si cambió el precio o la imagen
-        next.items[idx].nombre = product.nombre ?? next.items[idx].nombre;
-        next.items[idx].precio = product.precio ?? next.items[idx].precio ?? 0;
-        next.items[idx].imagen_principal = product.imagen_principal ?? next.items[idx].imagen_principal ?? null;
-        next.items[idx].seller_id = product.seller_id ?? next.items[idx].seller_id ?? null;
-      } else {
-        next.items.push({
-          id,
-          nombre: product.nombre ?? "Producto",
-          precio: product.precio ?? 0,
-          imagen_principal: product.imagen_principal ?? null,
-          seller_id: product.seller_id ?? null,
-          qty: Math.max(1, qty),
-        });
-      }
-      save(next);
-      return next;
-    }
-    case "SET_QTY": {
-      const { id, qty } = action.payload;
-      const next = structuredClone(state);
-      const it = next.items.find((x) => x.id === id);
-      if (!it) return state;
-      it.qty = Math.max(1, Math.min(999, qty));
-      save(next);
-      return next;
-    }
-    case "REMOVE": {
-      const { id } = action.payload;
-      const next = { items: state.items.filter((x) => x.id !== id) };
-      save(next);
-      return next;
-    }
-    case "CLEAR": {
-      const next = { items: [] };
-      save(next);
-      return next;
-    }
-    default:
-      return state;
-  }
-}
+const CartContext = createContext();
 
 export function CartProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, undefined, loadInitial);
+  const [items, setItems] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("cart") || "[]"); } catch { return []; }
+  });
 
-  // API pública del carrito
-  const api = useMemo(() => {
-    const addItem = (product, qty = 1) => {
-      const q = Number.isFinite(qty) ? qty : 1;
-      dispatch({ type: "ADD", payload: { product, qty: Math.max(1, q) } });
-    };
-    const setQty = (id, qty) => dispatch({ type: "SET_QTY", payload: { id, qty } });
-    const removeItem = (id) => dispatch({ type: "REMOVE", payload: { id } });
-    const clear = () => dispatch({ type: "CLEAR" });
+  // Persistir
+  useEffect(() => {
+    localStorage.setItem("cart", JSON.stringify(items));
+  }, [items]);
 
-    const count = state.items.reduce((acc, it) => acc + (it.qty || 0), 0);
-    const total = state.items.reduce((acc, it) => acc + (it.qty || 0) * (it.precio || 0), 0);
-
-    return { items: state.items, addItem, setQty, removeItem, clear, count, total };
-  }, [state]);
-
-  // sincroniza si se borró el storage desde otra pestaña
+  // Sincronizar entre pestañas
   useEffect(() => {
     const onStorage = (e) => {
-      if (e.key === STORAGE_KEY) {
-        try {
-          const parsed = e.newValue ? JSON.parse(e.newValue) : { items: [] };
-          dispatch({ type: "_REPLACE", payload: parsed }); // trigger suave
-        } catch {}
+      if (e.key === "cart") {
+        try { setItems(JSON.parse(e.newValue || "[]")); } catch {}
       }
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  return <CartContext.Provider value={api}>{children}</CartContext.Provider>;
+  // Agregar
+  const add = (p, qty = 1) => {
+    const q = Math.max(1, Number(qty || 1));
+    setItems(prev => {
+      const i = prev.findIndex(x => x.id === p.id);
+      let next;
+      if (i >= 0) {
+        next = [...prev];
+        next[i] = { ...next[i], qty: next[i].qty + q };
+      } else {
+        next = [...prev, { id: p.id, nombre: p.nombre, precio: Number(p.precio), qty: q, imagen: p.imagen || p.imagenes?.[0]?.url || null }];
+      }
+      toast(`+${q} ${p.nombre} al carrito`, 'success');
+      return next;
+    });
+  };
+
+  // Quitar cantidad (o todo si all=true)
+  const remove = (id, qty = 1, all = false) => {
+    setItems(prev => {
+      const i = prev.findIndex(x => x.id === id);
+      if (i < 0) return prev;
+      const it = prev[i];
+      const toRemove = all ? it.qty : Math.max(1, Number(qty || 1));
+      const newQty = it.qty - toRemove;
+      const next = [...prev];
+      if (newQty <= 0) {
+        next.splice(i, 1);
+        toast(`Quitado todo: ${it.nombre}`, 'info');
+      } else {
+        next[i] = { ...it, qty: newQty };
+        toast(`-${toRemove} ${it.nombre}`, 'info');
+      }
+      return next;
+    });
+  };
+
+  const updateQty = (id, qty) =>
+    setItems(prev => prev.map(x => x.id === id ? { ...x, qty: Math.max(1, Number(qty || 1)) } : x));
+
+  const clear = () => { setItems([]); toast('Carrito vaciado'); };
+
+  const count = useMemo(() => items.reduce((acc, it) => acc + it.qty, 0), [items]);
+  const total = useMemo(() => items.reduce((acc, it) => acc + (Number(it.precio) * it.qty), 0), [items]);
+
+  return (
+    <CartContext.Provider value={{ items, add, remove, updateQty, clear, count, total }}>
+      {children}
+    </CartContext.Provider>
+  );
 }
 
-export function useCart() {
-  const ctx = useContext(CartContext);
-  if (!ctx) throw new Error("useCart() debe usarse dentro de <CartProvider>");
-  return ctx;
-}
+export const useCart = () => useContext(CartContext);

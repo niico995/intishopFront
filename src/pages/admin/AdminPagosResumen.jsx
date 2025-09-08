@@ -1,6 +1,6 @@
-
+// src/pages/admin/pagos/AdminPagosResumen.jsx
 import { useEffect, useMemo, useState } from "react";
-import { getPagosTodos, marcarPagoPagado } from "../../api/adminService";
+import { getPagosTodos, marcarPagoPagado } from "../../../api/adminService";
 import { Link } from "react-router-dom";
 
 export default function AdminPagosResumen() {
@@ -14,37 +14,51 @@ export default function AdminPagosResumen() {
       setPagos(data);
     } catch (e) {
       console.error(e);
+      alert("No se pudo cargar pagos");
     } finally {
       setLoading(false);
     }
   };
-
   useEffect(() => { cargar(); }, []);
 
-  const total = useMemo(() => pagos.reduce((acc, p) => acc + Number(p.monto || 0), 0), [pagos]);
+  const resumen = useMemo(() => {
+    const r = { pendientes: 0, pagados: 0, totalPendiente: 0, totalPagado: 0 };
+    for (const p of pagos) {
+      if (p.estado === "pendiente") {
+        r.pendientes += 1;
+        r.totalPendiente += Number(p.monto || 0);
+      } else if (p.estado === "pagado") {
+        r.pagados += 1;
+        r.totalPagado += Number(p.monto || 0);
+      }
+    }
+    return r;
+  }, [pagos]);
 
   const payOne = async (p) => {
     try {
-      await marcarPagoPagado(p);
+      await marcarPagoPagado(p.id);
       await cargar();
     } catch (e) {
       console.error(e);
-      alert("No se pudo marcar");
+      alert("No se pudo marcar como pagado");
     }
   };
 
   return (
-    <div className="p-4 space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card title="Pagos" value={pagos.length} />
-        <Card title="Total" value={`$${Number(total).toFixed(2)}`} />
+    <div>
+      <h1 className="text-xl font-bold mb-4">Resumen de pagos</h1>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <Card title="Pendientes" value={resumen.pendientes} />
+        <Card title="Pagados" value={resumen.pagados} />
+        <Card title="Total pendiente" value={`$${resumen.totalPendiente.toFixed(2)}`} />
+        <Card title="Total pagado" value={`$${resumen.totalPagado.toFixed(2)}`} />
       </div>
 
-      {loading ? (
-        <div>Cargando…</div>
-      ) : (
-        <div className="overflow-auto">
-          <table className="min-w-[720px] w-full text-sm">
+      {loading ? <div>Cargando…</div> : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full border">
             <thead className="bg-slate-100">
               <tr>
                 <th className="p-2 text-left">ID</th>
@@ -61,9 +75,7 @@ export default function AdminPagosResumen() {
                   <td className="p-2">{p.id}</td>
                   <td className="p-2">
                     {p.seller_nombre || "-"}{" "}
-                    {p.seller_id && (
-                      <Link to={`/admin/pagos/socio/${p.seller_id}`} className="text-blue-600 underline">[ver]</Link>
-                    )}
+                    {p.seller_id && <Link to={`/admin/pagos/socio/${p.seller_id}`} className="text-blue-600 underline">[ver]</Link>}
                   </td>
                   <td className="p-2">${Number(p.monto || 0).toFixed(2)}</td>
                   <td className="p-2">{p.estado}</td>

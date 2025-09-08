@@ -1,179 +1,275 @@
-// src/components/PorductCard.jsx
-import { useState, useMemo } from "react";
+// // src/components/ProductCard.jsx
+// import { useState } from "react";
+// import { Link } from "react-router-dom";
+// import { useCart } from "./CartContext";
+
+// export default function ProductCard({ product }) {
+//   const [qty, setQty] = useState(1);
+//   const { add } = useCart();
+
+//   // 🔧 Tolerante a distintas formas de payload
+//   const sellerId =
+//     product.seller_id ??
+//     product.seller?.id ??
+//     product.sellerId ??
+//     product.sellerID ??
+//     null;
+
+//   const sellerNombre =
+//     product.seller_nombre ??
+//     product.seller?.nombre_fantasia ??
+//     product.seller?.name ??
+//     product.sellerName ??
+//     "Vendedor";
+
+//   const precio = Number(product.precio || 0);
+//   const cuotas4 = (precio / 4).toFixed(2);
+//   const stock = product.stock ?? undefined;
+//   const img =
+//     product.imagenes?.find(i => i.is_primary)?.url ||
+//     product.imagenes?.[0]?.url;
+
+//   const handleAdd = () => {
+//     if (qty < 1) return;
+//     add(
+//       {
+//         id: product.id,
+//         nombre: product.nombre,
+//         precio,
+//         seller_id: sellerId,
+//         seller_nombre: sellerNombre,
+//         img,
+//       },
+//       qty
+//     );
+//   };
+
+//   return (
+//     <div className="border rounded-xl p-3 hover:shadow-sm transition">
+//       {/* Imagen → detalle */}
+//       <Link
+//         to={`/producto/${product.id}`}
+//         className="block aspect-square bg-gray-100 rounded-lg overflow-hidden mb-2"
+//       >
+//         {img ? (
+//           <img src={img} alt={product.nombre} className="w-full h-full object-cover" />
+//         ) : null}
+//       </Link>
+
+//       {/* Vendedor → página del vendedor (si tenemos id) */}
+//       {sellerId ? (
+//         <Link to={`/vendedor/${sellerId}`} className="text-sm text-gray-500 hover:underline">
+//           {sellerNombre}
+//         </Link>
+//       ) : (
+//         <span className="text-sm text-gray-500">{sellerNombre}</span>
+//       )}
+
+//       {/* Nombre → detalle */}
+//       <Link to={`/producto/${product.id}`} className="block font-medium line-clamp-2 hover:underline">
+//         {product.nombre}
+//       </Link>
+
+//       <div className="mt-1">
+//         <div className="text-lg font-semibold">AR$ {precio.toLocaleString("es-AR")}</div>
+//         <div className="text-xs text-gray-500">en 4 cuotas de AR$ {Number(cuotas4).toLocaleString("es-AR")}</div>
+//       </div>
+
+//       <div className="mt-2 flex items-center gap-2">
+//         <input
+//           type="number"
+//           min={1}
+//           max={stock || undefined}
+//           value={qty}
+//           onChange={(e) => setQty(Math.max(1, Number(e.target.value)))}
+//           className="w-16 border rounded-md px-2 py-1"
+//         />
+//         <button onClick={handleAdd} className="flex-1 px-3 py-2 rounded-md bg-black text-white">
+//           Agregar al carrito
+//         </button>
+//       </div>
+//     </div>
+//   );
+// }
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import AddToCartButton from "./AddToCartButton";
 import { useCart } from "./CartContext";
 
-const fmt = (v) =>
-  Number(v ?? 0).toLocaleString("es-AR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-
-// ------ helpers robustos para vendedor ------
-function getSellerId(p) {
-  return (
-    p.seller_id ??
-    p.sellerId ??
-    p.sellerID ??
-    p?.seller?.id ??
-    p.tienda_id ??
-    p?.tienda?.id ??
-    p.vendedor_id ??
-    p?.vendedor?.id ??
-    null
-  );
-}
-
-function getSellerName(p) {
-  return (
-    p.seller_nombre ??
-    p.sellerName ??
-    p?.seller?.nombre_fantasia ??
-    p?.seller?.name ??
-    p?.seller?.username ??
-    p.tienda_nombre ??
-    p?.tienda?.nombre_fantasia ??
-    p?.tienda?.nombre ??
-    p.vendedor_nombre ??
-    p?.vendedor?.nombre ??
-    p.proveedor ?? // a veces usan proveedor como “nombre comercial”
-    ""
-  );
-}
-
 export default function ProductCard({ product }) {
-  const { addItem } = useCart();
+  const { add } = useCart();
 
-  // Imagen principal robusta
+  // ---- Vendedor
+  const sellerId =
+    product.seller_id ?? product.seller?.id ?? product.sellerId ?? product.sellerID ?? null;
+
+  const sellerNombre =
+    product.seller_nombre ??
+    product.seller?.nombre_fantasia ??
+    product.seller?.name ??
+    product.sellerName ??
+    "Vendedor";
+
+  // ---- Precio / Imagen
+  const precio = Number(product.precio || 0);
+  const cuotas4 = (precio / 4).toFixed(2);
   const img =
-    product.imagen_principal ||
-    (Array.isArray(product.imagenes)
-      ? (typeof product.imagenes[0] === "string"
-          ? product.imagenes[0]
-          : product.imagenes[0]?.url)
-      : null) ||
+    product.imagenes?.find((i) => i.is_primary)?.url ||
+    product.imagenes?.[0]?.url ||
     null;
 
-  // Vendedor
-  const sellerId = getSellerId(product);
-  const sellerName = getSellerName(product) || "-";
-
-  // Precio final (ya x1.5) + cuotas
-  const precio = product.precio ?? product.precio_base ?? 0;
-  const cuota4 = precio / 4;
-
-  // Stock y cantidad (límite por stock si está)
-  const stockValue = useMemo(
-    () => (typeof product?.stock === "number" ? Math.max(0, product.stock) : null),
-    [product]
-  );
-  const maxQty = stockValue ?? 99;
-  const sinStock = stockValue !== null ? stockValue <= 0 : false;
-
-  const [qty, setQty] = useState(1);
-  const clamp = (n) => Math.min(Math.max(1, Number.isFinite(n) ? n : 1), Math.max(1, maxQty));
-
-  const onMinus = () => setQty((q) => clamp(q - 1));
-  const onPlus  = () => setQty((q) => clamp(q + 1));
-  const onChange = (e) => {
-    const onlyDigits = String(e.target.value || "1").replace(/\D+/g, "");
-    setQty(clamp(parseInt(onlyDigits || "1", 10)));
+  // ---- Stock (solo front)
+  // Usa product.stock si es número (o string numérico). Si no lo es, NO muestra "Sin stock".
+  const parseNum = (v) => {
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v))) return Number(v);
+    return null;
   };
 
-  const addToCart = () => {
-    if (sinStock) return;
-    addItem(
+  const stockValue = parseNum(product.stock);        // número o null (desconocido)
+  const hasStockNumber = stockValue !== null;
+  const sinStock = hasStockNumber ? stockValue <= 0 : false;
+  const maxStock = hasStockNumber ? stockValue : Infinity;
+
+  // ---- Cantidad (string para que en mobile puedas borrar/tipear)
+  const [qtyStr, setQtyStr] = useState("1");
+
+  const clamp = (n) => {
+    const min = 1;
+    const max = maxStock; // Infinity si no tenemos número; no mostramos "Sin stock"
+    const nn = Math.max(min, n);
+    return Math.min(nn, max);
+  };
+
+  const parseClamp = (v) => {
+    const n = parseInt(v, 10);
+    if (!Number.isFinite(n)) return 1;
+    return clamp(n);
+  };
+
+  const onChangeQty = (e) => {
+    const v = e.target.value;
+    if (v === "" || /^[0-9]+$/.test(v)) {
+      // permitimos vacío mientras escribe; al salir se corrige
+      setQtyStr(v);
+    }
+  };
+
+  const onBlurQty = () => {
+    if (qtyStr === "") setQtyStr("1");
+    else setQtyStr(String(parseClamp(qtyStr)));
+  };
+
+  const step = (delta) => {
+    const base = qtyStr === "" ? 1 : parseInt(qtyStr, 10);
+    const next = Number.isFinite(base) ? base + delta : 1;
+    setQtyStr(String(clamp(next)));
+  };
+
+  const handleAdd = () => {
+    const qty = parseClamp(qtyStr);
+    if (qty < 1 || sinStock) return;
+    add(
       {
-        id: product.id ?? product.producto_id ?? product.slug,
-        nombre: product.nombre ?? product.title ?? "Producto",
+        id: product.id,
+        nombre: product.nombre,
         precio,
-        imagen_principal: img,
-        seller_id: sellerId || undefined,
+        seller_id: sellerId,
+        seller_nombre: sellerNombre,
+        img: img || undefined,
       },
       qty
     );
   };
 
   return (
-    <div className="group rounded-2xl border shadow-sm overflow-hidden hover:shadow-md transition flex flex-col">
-      <Link to={`/producto/${product.id}`} className="block">
-        <div className="aspect-square bg-neutral-100 overflow-hidden">
-          {img && (
-            <img
-              src={img}
-              alt={product.nombre}
-              className="w-full h-full object-cover group-hover:scale-105 transition"
-            />
-          )}
-        </div>
+    <div className="border rounded-xl p-3 hover:shadow-sm transition">
+      {/* Imagen → detalle */}
+      <Link
+        to={`/producto/${product.id}`}
+        className="block aspect-square bg-gray-100 rounded-lg overflow-hidden mb-2"
+      >
+        {img ? <img src={img} alt={product.nombre} className="w-full h-full object-cover" /> : null}
       </Link>
 
-      <div className="p-3 flex flex-col gap-1">
-        {sellerId ? (
-          <Link
-            to={`/vendedor/${sellerId}`}
-            className="text-[11px] uppercase tracking-wide text-gray-500 hover:underline"
-            title="Ver vendedor"
-          >
-            {sellerName}
-          </Link>
-        ) : (
-          <div className="text-[11px] uppercase tracking-wide text-gray-500">
-            {sellerName}
-          </div>
-        )}
-
-        <Link
-          to={`/producto/${product.id}`}
-          className="text-sm font-medium truncate"
-          title={product.nombre}
-        >
-          {product.nombre}
+      {/* Vendedor */}
+      {sellerId ? (
+        <Link to={`/vendedor/${sellerId}`} className="text-sm text-gray-500 hover:underline">
+          {sellerNombre}
         </Link>
+      ) : (
+        <span className="text-sm text-gray-500">{sellerNombre}</span>
+      )}
 
-        <div className="text-lg font-semibold mt-0.5">${fmt(precio)}</div>
-        <div className="text-xs text-gray-500">En 4 cuotas de ${fmt(precio / 4)}</div>
+      {/* Nombre → detalle */}
+      <Link to={`/producto/${product.id}`} className="block font-medium line-clamp-2 hover:underline">
+        {product.nombre}
+      </Link>
 
-        <div className="mt-2 flex items-center gap-2">
-          <div className="inline-flex items-center border rounded-lg overflow-hidden">
-            <button
-              onClick={onMinus}
-              className="px-3 py-1.5 text-lg disabled:opacity-50"
-              aria-label="Reducir cantidad"
-              disabled={sinStock || qty <= 1}
-            >
-              -
-            </button>
-            <input
-              className="w-12 text-center outline-none select-all"
-              value={qty}
-              onChange={onChange}
-              inputMode="numeric"
-              pattern="[0-9]*"
-              aria-label="Cantidad"
-            />
-            <button
-              onClick={onPlus}
-              className="px-3 py-1.5 text-lg disabled:opacity-50"
-              aria-label="Aumentar cantidad"
-              disabled={sinStock || qty >= maxQty}
-            >
-              +
-            </button>
-          </div>
+      <div className="mt-1">
+        <div className="text-lg font-semibold">AR$ {precio.toLocaleString("es-AR")}</div>
+        <div className="text-xs text-gray-500">
+          en 4 cuotas de AR$ {Number(cuotas4).toLocaleString("es-AR")}
+        </div>
+      </div>
 
-          <AddToCartButton onClick={addToCart} disabled={sinStock} />
+      {/* Controles */}
+      <div className="mt-2 flex items-stretch gap-2">
+        <div className="flex items-stretch border rounded-md overflow-hidden">
+          <button
+            type="button"
+            onClick={() => step(-1)}
+            className="px-2 text-sm disabled:opacity-50"
+            disabled={sinStock || parseClamp(qtyStr || "1") <= 1}
+            aria-label="Disminuir cantidad"
+          >
+            −
+          </button>
+
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            min={1}
+            max={hasStockNumber ? stockValue : undefined}
+            value={qtyStr}
+            onChange={onChangeQty}
+            onBlur={onBlurQty}
+            className="w-14 text-center outline-none"
+            disabled={sinStock}
+            aria-label="Cantidad"
+          />
+
+          <button
+            type="button"
+            onClick={() => step(1)}
+            className="px-2 text-sm disabled:opacity-50"
+            disabled={
+              sinStock ||
+              (hasStockNumber && parseClamp(qtyStr || "1") >= stockValue)
+            }
+            aria-label="Aumentar cantidad"
+          >
+            +
+          </button>
         </div>
 
-        {stockValue !== null ? (
-          stockValue <= 0 ? (
-            <div className="mt-1 text-xs text-red-600">Sin stock</div>
-          ) : (
-            <div className="mt-1 text-xs text-gray-500">Stock: {stockValue}</div>
-          )
-        ) : null}
+        <button
+          onClick={handleAdd}
+          disabled={sinStock}
+          className="flex-1 px-3 py-2 rounded-md bg-black text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Agregar
+        </button>
       </div>
+
+      {/* Mensajes de stock */}
+      {hasStockNumber ? (
+        stockValue <= 0 ? (
+          <div className="mt-1 text-xs text-red-600">Sin stock</div>
+        ) : (
+          <div className="mt-1 text-xs text-gray-500">Stock: {stockValue}</div>
+        )
+      ) : null}
     </div>
   );
 }

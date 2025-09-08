@@ -1,4 +1,4 @@
-
+// src/pages/admin/socios/AdminSocioDetail.jsx
 import { useEffect, useState } from "react";
 import { getSocio, patchSocio, toggleSocio } from "../../api/adminService";
 import { useNavigate, useParams } from "react-router-dom";

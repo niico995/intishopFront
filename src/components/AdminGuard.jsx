@@ -1,5 +1,3 @@
-
-
 import { Navigate, useLocation } from "react-router-dom";
 
 function decodeJWT(rawToken) {

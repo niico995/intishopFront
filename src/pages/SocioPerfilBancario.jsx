@@ -1,4 +1,4 @@
-
+// src/pages/SocioPerfilBancario.jsx
 import { useEffect, useState } from "react";
 import api from "../api/axiosConfig";
 import { toast, alert } from "../utils/notify";
@@ -79,7 +79,7 @@ export default function SocioPerfilBancario() {
           <span>Comprobante (imagen)</span>
           <input
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/jpg,image/avif,image/gif"
+            accept="image/*"
             onChange={(e) => setFile(e.target.files?.[0] || null)}
           />
           {comprobanteUrl && (

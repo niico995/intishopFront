@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useState } from 'react';
 import { verCreditos } from '../api/recargarCredito';
 

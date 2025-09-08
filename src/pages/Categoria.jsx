@@ -1,4 +1,4 @@
-
+// src/pages/Categoria.jsx
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import axios from "../api/axiosConfig";

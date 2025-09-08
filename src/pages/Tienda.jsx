@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import ListadoProductosVenta from './ListadoProductosVenta';// Asegurate de que esta ruta esté bien
 import MiniCarrito from './Carrito'; // Asegurate de que esta ruta esté bien también

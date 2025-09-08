@@ -1,4 +1,4 @@
-
+// src/pages/VendedorPage.jsx
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axiosPublic from '../api/axiosPublic';

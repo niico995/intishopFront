@@ -1,25 +1,18 @@
-// src/api/axiosPublic.js
-import axios from "axios";
+import axios from 'axios';
 
-/**
- * Normaliza la base para que SIEMPRE apunte a .../api
- * - Si VITE_API_URL = "https://intishopback.onrender.com" -> ".../api"
- * - Si ya trae "/api", se respeta.
- */
-function normalizeBase(raw) {
-  let u = String(raw || "").trim().replace(/\/+$/, "");
-  if (!u) u = "https://intishopback.onrender.com";
-  if (!/^https?:\/\//i.test(u)) u = "https://" + u;
-  if (!/\/api$/i.test(u)) u += "/api";
-  return u;
-}
-
-const baseURL = normalizeBase(import.meta.env.VITE_API_URL);
+const baseURL =
+  (import.meta.env.VITE_API_URL?.replace(/\/?$/, '/')) // debe terminar con /
+  || 'https://intishopback.onrender.com/api/'; // 👈 en local: HTTP
 
 const axiosPublic = axios.create({
   baseURL,
+  timeout: 15000,
   withCredentials: false,
-  headers: { "Content-Type": "application/json" },
+});
+
+axiosPublic.interceptors.request.use((config) => {
+  if (config.headers) delete config.headers.Authorization;
+  return config;
 });
 
 export default axiosPublic;

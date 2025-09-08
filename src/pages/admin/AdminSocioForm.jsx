@@ -1,4 +1,4 @@
-
+// src/pages/admin/socios/AdminSocioForm.jsx
 import { useState } from "react";
 import { createSocio } from "../../api/adminService";
 import { useNavigate } from "react-router-dom";

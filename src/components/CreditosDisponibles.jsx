@@ -1,4 +1,4 @@
-
+// src/components/CreditosDisponibles.jsx
 import { useEffect, useState } from 'react';
 import { verCreditos } from '../api/recargarCredito';
 

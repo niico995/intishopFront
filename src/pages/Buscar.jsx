@@ -1,4 +1,4 @@
-
+// src/pages/Buscar.jsx
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import axios from "../api/axiosConfig";

@@ -1,4 +1,4 @@
-
+// src/pages/socio/BannersSocio.jsx
 import { useEffect, useState } from "react";
 import axiosInstance from "../api/axiosConfig";
 
@@ -72,7 +72,7 @@ export default function BannersSocio() {
       <h2 className="text-xl font-bold">Banners del vendedor</h2>
 
       <form onSubmit={subir} className="space-y-3 border rounded p-3">
-        <input type="file" accept="image/jpeg,image/png,image/webp,image/jpg,image/avif,image/gif" onChange={onFile} />
+        <input type="file" accept="image/webp" onChange={onFile} />
         <input className="border p-2 w-full" placeholder="Título (opcional)"
                value={titulo} onChange={e => setTitulo(e.target.value)} />
         <input className="border p-2 w-full" placeholder="Link (opcional)"

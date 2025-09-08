@@ -1,4 +1,4 @@
-
+// src/pages/CargarPerfilCliente.jsx
 import { useEffect, useState } from 'react';
 import api from '../api/axiosConfig';
 import { useNavigate } from 'react-router-dom';

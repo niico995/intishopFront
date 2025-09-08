@@ -1,322 +1,282 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import axios from '../api/axiosConfig';
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
-
-/**
- * Editor de producto con:
- *  - multiselect de categorías
- *  - campo "Nueva categoría" que crea (o reutiliza si ya existe) y la marca seleccionada
- *  - envío PATCH con categorias: [ids]
- *
- * Requiere: token JWT en localStorage (key "token") o adaptá a tu auth.
- */
-export default function EditarProducto() {
-  const { id } = useParams(); // /productos/editar/:id
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  // catálogo de categorías y selección (ids)
-  const [cats, setCats] = useState([]);
-  const [selectedCatIds, setSelectedCatIds] = useState([]);
-
-  // campos del producto (ajustá nombres si hace falta)
-  const [form, setForm] = useState({
-    nombre: "",
-    descripcion: "",
-    costo: "",          // obligatorio
-    precio_base: "",    // precio del socio
-    stock: "",
-    activo: true,
-    proveedor: "",
-    destacado: false,
+const EditarProducto = () => {
+  const { id } = useParams();
+  const [formData, setFormData] = useState({
+    nombre: '',
+    descripcion: '',
+    precio: '',
+    stock: '',
+    categorias: [],
   });
+  const [categorias, setCategorias] = useState([]);
+  const [nuevaCategoria, setNuevaCategoria] = useState('');
+  const [mensaje, setMensaje] = useState('');
+  const [error, setError] = useState('');
 
-  const token = useMemo(() => localStorage.getItem("token") || "", []);
+  // 📸 Imágenes actuales
+  const [imagenes, setImagenes] = useState([]);
 
   useEffect(() => {
-    let abort = false;
+    getProducto();
+    getCategorias();
+    getImagenes();
+  }, []);
 
-    async function loadAll() {
-      setLoading(true);
-      try {
-        // 1) categorías catálogo
-        const resCats = await fetch(`${API_BASE}/api/products/categorias/`);
-        const dataCats = resCats.ok ? await resCats.json() : [];
-        if (!abort) setCats(Array.isArray(dataCats) ? dataCats : []);
-
-        // 2) producto
-        const resProd = await fetch(`${API_BASE}/api/products/${id}/`);
-        if (!resProd.ok) throw new Error("No se pudo cargar el producto");
-        const p = await resProd.json();
-
-        // mapear campos
-        const categoriasDelProd = Array.isArray(p.categorias)
-          ? p.categorias.map((x) => (typeof x === "object" ? x.id : x))
-          : [];
-
-        if (!abort) {
-          setForm({
-            nombre: p.nombre || "",
-            descripcion: p.descripcion || "",
-            costo: p.costo ?? "",
-            precio_base: p.precio_base ?? p.precio ?? "",
-            stock: p.stock ?? "",
-            activo: p.activo ?? true,
-            proveedor: p.proveedor ?? "",
-            destacado: p.destacado ?? false,
-          });
-          setSelectedCatIds(categoriasDelProd);
-        }
-      } catch (e) {
-        if (!abort) setError(e.message || "Error inesperado");
-      } finally {
-        if (!abort) setLoading(false);
-      }
-    }
-
-    loadAll();
-    return () => {
-      abort = true;
-    };
-  }, [id]);
-
-  function updateField(field, value) {
-    setForm((f) => ({ ...f, [field]: value }));
-  }
-
-  function toggleCat(id) {
-    setSelectedCatIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  }
-
-  async function handleAddCategory(e) {
-    e?.preventDefault?.();
-    const nombre = prompt("Nombre de la nueva categoría:")?.trim();
-    if (!nombre) return;
-
+  const getProducto = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/products/categorias/crear/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ nombre }),
+      const res = await axios.get(`products/${id}/`);
+      setFormData({
+        nombre: res.data.nombre,
+        descripcion: res.data.descripcion,
+        precio: res.data.precio,
+        stock: res.data.stock,
+        categorias: res.data.categorias || [],
       });
-      if (!res.ok) {
-        alert("No se pudo crear la categoría");
-        return;
-      }
-      const cat = await res.json(); // {id, nombre}
-      // agregar al catálogo si no está
-      setCats((prev) =>
-        prev.find((c) => c.id === cat.id) ? prev : [...prev, cat]
-      );
-      // marcarla seleccionada
-      setSelectedCatIds((prev) =>
-        prev.includes(cat.id) ? prev : [...prev, cat.id]
-      );
-    } catch {
-      alert("Error creando categoría");
+    } catch (err) {
+      console.error(err);
+      setError('Error al cargar el producto');
     }
-  }
+  };
 
-  async function handleSubmit(e) {
+  const getCategorias = async () => {
+    try {
+      const res = await axios.get('products/categorias/');
+      setCategorias(res.data);
+    } catch (err) {
+      console.error(err);
+      setError('Error al cargar las categorías');
+    }
+  };
+
+  // 🔹 Obtener imágenes actuales del producto
+  const getImagenes = async () => {
+    try {
+      const res = await axios.get(`products/imagenes/`, {
+        params: { product: id },
+      });
+      setImagenes(res.data);
+    } catch (err) {
+      console.error('Error al obtener imágenes:', err);
+    }
+  };
+
+  // 🗑 Eliminar imagen
+  const eliminarImagen = async (imgId) => {
+    try {
+      await axios.delete(`products/imagenes/${imgId}/eliminar/`);
+      setImagenes(prev => prev.filter(img => img.id !== imgId));
+    } catch (err) {
+      console.error('Error eliminando imagen:', err);
+    }
+  };
+
+  // ⬆️ Subir nuevas imágenes
+  const subirImagenes = async (fileList) => {
+    const fd = new FormData();
+    fd.append('product', id);
+    for (let f of fileList) {
+      fd.append('files', f);
+    }
+    try {
+      await axios.post('products/imagenes/subir/', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      getImagenes(); // recargar
+    } catch (err) {
+      console.error('Error subiendo imágenes:', err);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCheckbox = (catId) => {
+    setFormData(prev => {
+      const seleccionadas = prev.categorias.includes(catId)
+        ? prev.categorias.filter(c => c !== catId)
+        : [...prev.categorias, catId];
+      return { ...prev, categorias: seleccionadas };
+    });
+  };
+
+  const crearCategoria = async () => {
+    if (!nuevaCategoria.trim()) return;
+    try {
+      const res = await axios.post('products/categorias/crear/', {
+        nombre: nuevaCategoria,
+      });
+      setCategorias(prev => [...prev, { id: res.data.id, nombre: res.data.nombre }]);
+      setFormData(prev => ({ ...prev, categorias: [...prev.categorias, res.data.id] }));
+      setNuevaCategoria('');
+    } catch (err) {
+      console.error('Error creando categoría:', err);
+      setError('No se pudo crear la categoría');
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-
-    // Validaciones mínimas
-    if (!form.nombre?.trim()) return setError("Ingresá un nombre");
-    if (form.costo === "" || form.costo === null) return setError("Costo requerido");
-    if (form.precio_base === "" || form.precio_base === null) return setError("Precio del socio requerido");
-
-    setSaving(true);
+    setMensaje('');
+    setError('');
     try {
-      // armamos payload
-      const payload = {
-        nombre: form.nombre,
-        descripcion: form.descripcion,
-        costo: Number(form.costo),
-        precio_base: Number(form.precio_base),
-        stock: Number.isNaN(Number(form.stock)) ? form.stock : Number(form.stock),
-        activo: !!form.activo,
-        proveedor: form.proveedor,
-        destacado: !!form.destacado,
-        categorias: selectedCatIds, // mandamos ids
-      };
-
-      const res = await fetch(`${API_BASE}/api/products/${id}/`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`Error al guardar: ${txt || res.status}`);
-      }
-      navigate("/mi-cuenta/productos"); // o donde corresponda
-    } catch (e) {
-      setError(e.message || "Error guardando");
-    } finally {
-      setSaving(false);
+      await axios.put(`products/${id}/actualizar/`, formData);
+      setMensaje('Producto actualizado correctamente');
+    } catch (err) {
+      console.error(err);
+      setError('Error al actualizar el producto');
     }
-  }
-
-  if (loading) return <div className="p-4">Cargando…</div>;
+  };
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
-      <h1 className="text-xl font-semibold mb-4">Editar producto</h1>
+    <div style={{ maxWidth: 600, margin: '0 auto', padding: 20 }}>
+      <h2 style={{ textAlign: 'center', marginBottom: 20, fontSize: 28, color: 'green' }}>
+        Editar Producto
+      </h2>
+      {mensaje && <p style={{ color: 'green', textAlign: 'center' }}>{mensaje}</p>}
+      {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
 
-      {error && (
-        <div className="mb-3 rounded border border-red-300 bg-red-50 text-red-800 px-3 py-2 text-sm">
-          {error}
+      {/* 🖼 Imágenes actuales */}
+      {imagenes.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <h3>Imágenes actuales</h3>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {imagenes.map(img => (
+              <div
+                key={img.id}
+                style={{
+                  border: img.is_primary ? '3px solid green' : '1px solid #ccc',
+                  padding: 5,
+                  borderRadius: 8,
+                  textAlign: 'center'
+                }}
+              >
+                <img
+                  src={img.url}
+                  alt={`Imagen ${img.id}`}
+                  style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 6 }}
+                />
+                {img.is_primary && <div style={{ fontSize: 12, color: 'green' }}>Principal</div>}
+                <button
+                  type="button"
+                  onClick={() => eliminarImagen(img.id)}
+                  style={{
+                    marginTop: 5,
+                    background: 'red',
+                    color: 'white',
+                    border: 'none',
+                    padding: '4px 8px',
+                    borderRadius: 4,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Eliminar
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium">Nombre</label>
+      {/* 📤 Subir nuevas imágenes */}
+      <div style={{ marginBottom: 20 }}>
+        <h3>Agregar nuevas imágenes (.webp)</h3>
+        <input
+          type="file"
+          accept="image/webp"
+          multiple
+          onChange={(e) => subirImagenes(e.target.files)}
+        />
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        <label>Nombre:</label>
+        <input
+          type="text"
+          name="nombre"
+          value={formData.nombre}
+          onChange={handleChange}
+          required
+          style={{ width: '100%', marginBottom: 10 }}
+        />
+
+        <label>Descripción:</label>
+        <textarea
+          name="descripcion"
+          value={formData.descripcion}
+          onChange={handleChange}
+          required
+          rows={3}
+          style={{ width: '100%', marginBottom: 10 }}
+        />
+
+        <label>Precio:</label>
+        <input
+          type="number"
+          name="precio"
+          value={formData.precio}
+          onChange={handleChange}
+          required
+          style={{ width: '100%', marginBottom: 10 }}
+        />
+
+        <label>Stock:</label>
+        <input
+          type="number"
+          name="stock"
+          value={formData.stock}
+          onChange={handleChange}
+          required
+          style={{ width: '100%', marginBottom: 10 }}
+        />
+
+        <label>Categorías:</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: 10 }}>
+          {categorias.map(cat => (
+            <label key={cat.id} style={{ display: 'flex', alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                checked={formData.categorias.includes(cat.id)}
+                onChange={() => handleCheckbox(cat.id)}
+                style={{ marginRight: 5 }}
+              />
+              {cat.nombre}
+            </label>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', marginBottom: 10 }}>
           <input
-            className="w-full border rounded px-3 py-2"
-            value={form.nombre}
-            onChange={(e) => updateField("nombre", e.target.value)}
-            required
+            type="text"
+            value={nuevaCategoria}
+            onChange={(e) => setNuevaCategoria(e.target.value)}
+            placeholder="Nueva categoría"
+            style={{ flex: 1, marginRight: 8 }}
           />
+          <button type="button" onClick={crearCategoria}>Agregar</button>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium">Descripción</label>
-          <textarea
-            className="w-full border rounded px-3 py-2"
-            value={form.descripcion}
-            onChange={(e) => updateField("descripcion", e.target.value)}
-            rows={4}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label className="block text-sm font-medium">Costo (obligatorio)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              className="w-full border rounded px-3 py-2"
-              value={form.costo}
-              onChange={(e) => updateField("costo", e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Precio socio</label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              className="w-full border rounded px-3 py-2"
-              value={form.precio_base}
-              onChange={(e) => updateField("precio_base", e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Stock</label>
-            <input
-              type="number"
-              step="1"
-              className="w-full border rounded px-3 py-2"
-              value={form.stock}
-              onChange={(e) => updateField("stock", e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={!!form.activo}
-              onChange={(e) => updateField("activo", e.target.checked)}
-            />
-            Activo
-          </label>
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={!!form.destacado}
-              onChange={(e) => updateField("destacado", e.target.checked)}
-            />
-            Destacado
-          </label>
-          <div>
-            <label className="block text-sm font-medium">Proveedor</label>
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={form.proveedor}
-              onChange={(e) => updateField("proveedor", e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Categorías */}
-        <div>
-          <div className="flex items-center justify-between">
-            <label className="block text-sm font-medium">Categorías</label>
-            <button
-              type="button"
-              onClick={handleAddCategory}
-              className="text-sm px-2 py-1 rounded bg-blue-600 text-white"
-            >
-              + Nueva categoría
-            </button>
-          </div>
-
-          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {cats.map((c) => (
-              <label
-                key={c.id}
-                className="flex items-center gap-2 border rounded px-3 py-2 hover:bg-gray-50 cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedCatIds.includes(c.id)}
-                  onChange={() => toggleCat(c.id)}
-                />
-                <span>{c.nombre || c.name}</span>
-              </label>
-            ))}
-            {cats.length === 0 && (
-              <div className="text-sm text-gray-500">No hay categorías</div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-4 py-2 rounded bg-green-600 text-white disabled:opacity-60"
-          >
-            {saving ? "Guardando…" : "Guardar"}
-          </button>
-          <button
-            type="button"
-            className="px-4 py-2 rounded border"
-            onClick={() => navigate(-1)}
-          >
-            Cancelar
-          </button>
-        </div>
+        <button
+          type="submit"
+          style={{
+            width: '100%',
+            backgroundColor: '#007bff',
+            color: '#fff',
+            padding: 10,
+            border: 'none',
+            borderRadius: 5,
+            cursor: 'pointer',
+          }}
+        >
+          Actualizar
+        </button>
       </form>
     </div>
   );
-}
+};
+
+export default EditarProducto;

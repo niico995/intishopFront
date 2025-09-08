@@ -1,4 +1,4 @@
-
+// src/pages/admin/index.jsx (rutas admin)
 import { Route } from "react-router-dom";
 import AdminLayout from "./AdminLayout";
 import AdminGuard from "../../components/AdminGuard";
