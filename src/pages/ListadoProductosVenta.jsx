@@ -17,7 +17,7 @@ const ListadoProductosVenta = ({ onAgregar }) => {
 console.log('axiosPublic baseURL ->', axiosPublic.defaults.baseURL);
 const getProductos = async () => {
   try {
-    const res = await axiosPublic.get('products/tienda/productos/');
+    const res = await axiosPublic.get('products/public/productos/');
     
     setProductos(res.data || []);
   } catch (err) {

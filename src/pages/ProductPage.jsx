@@ -11,7 +11,7 @@
 //   const { add } = useCart();
 
 //   useEffect(() => {
-//     axios.get(`products/tienda/producto/${id}/`).then(r => setP(r.data)).catch(() => setP(null));
+//     axios.get(`products/public/${id}/`).then(r => setP(r.data)).catch(() => setP(null));
 //   }, [id]);
 
 //   if (!p) return <div className="max-w-6xl mx-auto p-4">Cargando…</div>;
@@ -97,7 +97,7 @@
 //     setSelIdx(null); // 👈 resetea selección al cambiar de producto
 
 //     axios
-//       .get(`products/tienda/producto/${id}/`)
+//       .get(`products/public/${id}/`)
 //       .then((r) => {
 //         if (cancel) return;
 //         setP(r.data);
@@ -271,7 +271,7 @@ export default function ProductoDetalle() {
     setQtyStr("1");
 
     axios
-      .get(`products/tienda/producto/${id}/`)
+      .get(`products/public/${id}/`)
       .then((r) => {
         if (cancel) return;
         setP(r.data);

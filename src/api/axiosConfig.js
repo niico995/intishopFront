@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: 'https://intishopback.onrender.com/api/',
+  baseURL: '/api/',
   withCredentials: false,
   timeout: 15000,
 });

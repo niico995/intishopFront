@@ -145,7 +145,7 @@ export default function NavBar() {
     try {
       const pr = await axiosPublic
         .get(
-          `products/tienda/productos/?search=${encodeURIComponent(
+          `products/public/productos/?search=${encodeURIComponent(
             query
           )}&ordering=-creado&limit=12`
         )
