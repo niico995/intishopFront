@@ -97,6 +97,7 @@ import { useCart } from "./CartContext";
 
 export default function ProductCard({ product }) {
   const { add } = useCart();
+  const [added, setAdded] = useState(false);
 
   // ---- Vendedor
   const sellerId =
@@ -165,7 +166,7 @@ export default function ProductCard({ product }) {
     setQtyStr(String(clamp(next)));
   };
 
-  const handleAdd = () => {
+   const handleAdd = () => {
     const qty = parseClamp(qtyStr);
     if (qty < 1 || sinStock) return;
     add(
@@ -179,6 +180,9 @@ export default function ProductCard({ product }) {
       },
       qty
     );
+    // 👇 animación verde 0.7s
+    setAdded(true);
+    setTimeout(() => setAdded(false), 700);
   };
 
   return (
@@ -253,10 +257,10 @@ export default function ProductCard({ product }) {
           </button>
         </div>
 
-        <button
+       <button
           onClick={handleAdd}
           disabled={sinStock}
-          className="flex-1 px-3 py-2 rounded-md bg-black text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`flex-1 px-3 py-2 rounded-md text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${added ? "bg-green-600" : "bg-black"}`}
         >
           Agregar
         </button>

@@ -11,7 +11,7 @@
 //   const { add } = useCart();
 
 //   useEffect(() => {
-//     axios.get(`products/public/${id}/`).then(r => setP(r.data)).catch(() => setP(null));
+//     axios.get(`products/tienda/producto/${id}/`).then(r => setP(r.data)).catch(() => setP(null));
 //   }, [id]);
 
 //   if (!p) return <div className="max-w-6xl mx-auto p-4">Cargando…</div>;
@@ -97,7 +97,7 @@
 //     setSelIdx(null); // 👈 resetea selección al cambiar de producto
 
 //     axios
-//       .get(`products/public/${id}/`)
+//       .get(`products/tienda/producto/${id}/`)
 //       .then((r) => {
 //         if (cancel) return;
 //         setP(r.data);
@@ -247,47 +247,274 @@
 //   );
 // }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//-----------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------
+// import { useEffect, useMemo, useState } from "react";
+// import { useParams, Link } from "react-router-dom";
+// import axios from "../api/axiosPublic"; // público para detalle
+// import { useCart } from "../components/CartContext";
+
+// const fmtARS = (v) =>
+//   Number(v).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+// export default function ProductoDetalle() {
+//   const { id } = useParams();
+//   const [p, setP] = useState(null);
+//   const [error, setError] = useState("");
+//   const [qtyStr, setQtyStr] = useState("1"); // 👈 string-friendly para mobile
+//   const [selIdx, setSelIdx] = useState(null); // arranca sin selección
+//   const { add } = useCart();
+
+//   useEffect(() => {
+//     let cancel = false;
+//     setError("");
+//     setP(null);
+//     setSelIdx(null);
+//     setQtyStr("1");
+
+//     axios
+//       .get(`products/tienda/producto/${id}/`)
+//       .then((r) => {
+//         if (cancel) return;
+//         setP(r.data);
+//       })
+//       .catch(() => {
+//         if (cancel) return;
+//         setError("No pudimos cargar el producto.");
+//       });
+
+//     return () => {
+//       cancel = true;
+//     };
+//   }, [id]);
+
+//   const imagenes = p?.imagenes || [];
+
+//   const activeUrl = useMemo(() => {
+//     if (!imagenes.length) return null;
+//     if (selIdx !== null && imagenes[selIdx]) return imagenes[selIdx].url;
+//     const prim = imagenes.find((i) => i.is_primary);
+//     return prim?.url || imagenes[0].url;
+//   }, [imagenes, selIdx]);
+
+//   if (error) return <div className="max-w-6xl mx-auto p-4">{error}</div>;
+//   if (!p) return <div className="max-w-6xl mx-auto p-4">Cargando…</div>;
+
+//   const precio = Number(p.precio);
+//   const cuotas4 = (precio / 4).toFixed(2);
+//   const sinStock = (p.stock ?? 0) <= 0;
+//   const maxStock = typeof p.stock === "number" ? p.stock : Infinity;
+
+//   const parseClamp = (v) => {
+//     const n = parseInt(v, 10);
+//     if (!n || n < 1) return 1;
+//     return Math.min(n, maxStock);
+//   };
+
+//   const onQtyChange = (e) => {
+//     const v = e.target.value;
+//     if (v === "" || /^[0-9]+$/.test(v)) setQtyStr(v);
+//   };
+
+//   const onQtyBlur = () => {
+//     setQtyStr(String(parseClamp(qtyStr)));
+//   };
+
+//   const step = (delta) => {
+//     const next = parseClamp(qtyStr === "" ? "1" : qtyStr);
+//     const res = Math.min(Math.max(next + delta, 1), maxStock);
+//     setQtyStr(String(res));
+//   };
+
+//   const addToCart = () => {
+//     if (sinStock) return;
+//     const qty = parseClamp(qtyStr);
+//     const item = {
+//       id: p.id,
+//       nombre: p.nombre,
+//       precio,
+//       seller_id: p.seller_id,
+//       seller_nombre: p.seller_nombre,
+//       img: activeUrl || undefined,
+//     };
+//     add(item, qty);
+//   };
+
+//   const isThumbActive = (idx, img) =>
+//     selIdx !== null ? idx === selIdx : !!img.is_primary || idx === 0;
+
+//   return (
+//     <div className="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+//       {/* Galería */}
+//       <div>
+//         <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-3">
+//           {activeUrl ? (
+//             <img
+//               src={activeUrl}
+//               alt={p.nombre}
+//               className="w-full h-full object-cover"
+//               loading="eager"
+//               decoding="async"
+//             />
+//           ) : null}
+//         </div>
+
+//         {/* Miniaturas */}
+//         {imagenes.length > 1 && (
+//           <div className="flex gap-2 flex-wrap">
+//             {imagenes.map((img, idx) => (
+//               <button
+//                 key={img.id || idx}
+//                 type="button"
+//                 onClick={() => setSelIdx(idx)}
+//                 className={`w-16 h-16 rounded-md border overflow-hidden ${
+//                   isThumbActive(idx, img) ? "ring-2 ring-black" : ""
+//                 }`}
+//                 aria-label={`Imagen ${idx + 1}`}
+//                 aria-selected={isThumbActive(idx, img)}
+//               >
+//                 <img
+//                   src={img.url}
+//                   alt=""
+//                   className="w-full h-full object-cover"
+//                   loading="lazy"
+//                   decoding="async"
+//                 />
+//               </button>
+//             ))}
+//           </div>
+//         )}
+//       </div>
+
+//       {/* Info */}
+//       <div>
+//         <h1 className="text-2xl font-semibold">{p.nombre}</h1>
+
+//         <div className="text-sm text-gray-500 mb-2">
+//           {p.seller_id ? (
+//             <Link to={`/vendedor/${p.seller_id}`} className="underline hover:no-underline">
+//               {p.seller_nombre}
+//             </Link>
+//           ) : (
+//             p.seller_nombre
+//           )}
+//         </div>
+
+//         <div className="text-3xl font-bold">AR$ {fmtARS(precio)}</div>
+//         <div className="text-sm text-gray-500">
+//           en 4 cuotas de AR$ {Number(cuotas4).toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+//         </div>
+
+//         <div className="mt-2 text-sm">
+//           Stock:{" "}
+//           {sinStock ? (
+//             <span className="text-red-600 font-medium">Sin stock</span>
+//           ) : (
+//             <span>{p.stock}</span>
+//           )}
+//         </div>
+
+//         <p className="mt-4 text-gray-700 whitespace-pre-line">{p.descripcion}</p>
+
+//         <div className="mt-6 flex items-stretch gap-3">
+//           <div className="flex items-stretch border rounded-md overflow-hidden">
+//             <button
+//               type="button"
+//               onClick={() => step(-1)}
+//               className="px-3 text-base disabled:opacity-50"
+//               disabled={sinStock}
+//               aria-label="Disminuir cantidad"
+//             >
+//               −
+//             </button>
+//             <input
+//               type="text"
+//               inputMode="numeric"
+//               pattern="[0-9]*"
+//               min={1}
+//               max={p.stock || undefined}
+//               value={qtyStr}
+//               onChange={onQtyChange}
+//               onBlur={onQtyBlur}
+//               className="w-20 text-center outline-none"
+//               disabled={sinStock}
+//               aria-label="Cantidad"
+//             />
+//             <button
+//               type="button"
+//               onClick={() => step(1)}
+//               className="px-3 text-base disabled:opacity-50"
+//               disabled={sinStock || (typeof p.stock === "number" && parseClamp(qtyStr) >= p.stock)}
+//               aria-label="Aumentar cantidad"
+//             >
+//               +
+//             </button>
+//           </div>
+
+//           <button
+//             onClick={addToCart}
+//             disabled={sinStock}
+//             className="px-4 py-2 rounded-md bg-black text-white disabled:opacity-50 disabled:cursor-not-allowed"
+//           >
+//             Agregar al carrito
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import axios from "../api/axiosPublic"; // público para detalle
+import axiosPublic from "../api/axiosPublic";
 import { useCart } from "../components/CartContext";
 
 const fmtARS = (v) =>
   Number(v).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-export default function ProductoDetalle() {
+export default function ProductPage() {
   const { id } = useParams();
   const [p, setP] = useState(null);
   const [error, setError] = useState("");
-  const [qtyStr, setQtyStr] = useState("1"); // 👈 string-friendly para mobile
-  const [selIdx, setSelIdx] = useState(null); // arranca sin selección
+  const [qtyStr, setQtyStr] = useState("1");     // 👈 string-friendly para mobile
+  const [selIdx, setSelIdx] = useState(null);
+  const [added, setAdded] = useState(false);     // 👈 animación verde
   const { add } = useCart();
 
   useEffect(() => {
     let cancel = false;
-    setError("");
-    setP(null);
-    setSelIdx(null);
-    setQtyStr("1");
+    setError(""); setP(null); setSelIdx(null); setQtyStr("1");
 
-    axios
-      .get(`products/public/${id}/`)
-      .then((r) => {
-        if (cancel) return;
-        setP(r.data);
-      })
-      .catch(() => {
-        if (cancel) return;
-        setError("No pudimos cargar el producto.");
-      });
+    axiosPublic.get(`products/public/${id}/`)
+      .then((r) => { if (!cancel) setP(r.data); })
+      .catch(() => { if (!cancel) setError("No pudimos cargar el producto."); });
 
-    return () => {
-      cancel = true;
-    };
+    return () => { cancel = true; };
   }, [id]);
 
   const imagenes = p?.imagenes || [];
-
   const activeUrl = useMemo(() => {
     if (!imagenes.length) return null;
     if (selIdx !== null && imagenes[selIdx]) return imagenes[selIdx].url;
@@ -308,76 +535,47 @@ export default function ProductoDetalle() {
     if (!n || n < 1) return 1;
     return Math.min(n, maxStock);
   };
-
   const onQtyChange = (e) => {
     const v = e.target.value;
     if (v === "" || /^[0-9]+$/.test(v)) setQtyStr(v);
   };
-
-  const onQtyBlur = () => {
-    setQtyStr(String(parseClamp(qtyStr)));
-  };
-
-  const step = (delta) => {
+  const onQtyBlur = () => setQtyStr(String(parseClamp(qtyStr)));
+  const step = (d) => {
     const next = parseClamp(qtyStr === "" ? "1" : qtyStr);
-    const res = Math.min(Math.max(next + delta, 1), maxStock);
-    setQtyStr(String(res));
+    setQtyStr(String(Math.min(Math.max(next + d, 1), maxStock)));
   };
 
   const addToCart = () => {
     if (sinStock) return;
     const qty = parseClamp(qtyStr);
-    const item = {
+    add({
       id: p.id,
       nombre: p.nombre,
       precio,
       seller_id: p.seller_id,
       seller_nombre: p.seller_nombre,
       img: activeUrl || undefined,
-    };
-    add(item, qty);
+    }, qty);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 700);  // 👈 verde 0.7s
   };
 
-  const isThumbActive = (idx, img) =>
-    selIdx !== null ? idx === selIdx : !!img.is_primary || idx === 0;
+  const isThumbActive = (idx, img) => selIdx !== null ? idx === selIdx : !!img.is_primary || idx === 0;
 
   return (
     <div className="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Galería */}
       <div>
         <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-3">
-          {activeUrl ? (
-            <img
-              src={activeUrl}
-              alt={p.nombre}
-              className="w-full h-full object-cover"
-              loading="eager"
-              decoding="async"
-            />
-          ) : null}
+          {activeUrl && <img src={activeUrl} alt={p.nombre} className="w-full h-full object-cover" />}
         </div>
-
-        {/* Miniaturas */}
         {imagenes.length > 1 && (
           <div className="flex gap-2 flex-wrap">
             {imagenes.map((img, idx) => (
-              <button
-                key={img.id || idx}
-                type="button"
-                onClick={() => setSelIdx(idx)}
-                className={`w-16 h-16 rounded-md border overflow-hidden ${
-                  isThumbActive(idx, img) ? "ring-2 ring-black" : ""
-                }`}
-                aria-label={`Imagen ${idx + 1}`}
-                aria-selected={isThumbActive(idx, img)}
-              >
-                <img
-                  src={img.url}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
+              <button key={img.id || idx} type="button" onClick={() => setSelIdx(idx)}
+                className={`w-16 h-16 rounded-md border overflow-hidden ${isThumbActive(idx, img) ? "ring-2 ring-black" : ""}`}
+                aria-label={`Imagen ${idx + 1}`} aria-selected={isThumbActive(idx, img)}>
+                <img src={img.url} alt="" className="w-full h-full object-cover" loading="lazy" />
               </button>
             ))}
           </div>
@@ -389,13 +587,8 @@ export default function ProductoDetalle() {
         <h1 className="text-2xl font-semibold">{p.nombre}</h1>
 
         <div className="text-sm text-gray-500 mb-2">
-          {p.seller_id ? (
-            <Link to={`/vendedor/${p.seller_id}`} className="underline hover:no-underline">
-              {p.seller_nombre}
-            </Link>
-          ) : (
-            p.seller_nombre
-          )}
+          {p.seller_id ? <Link to={`/vendedor/${p.seller_id}`} className="underline hover:no-underline">{p.seller_nombre}</Link>
+                        : p.seller_nombre}
         </div>
 
         <div className="text-3xl font-bold">AR$ {fmtARS(precio)}</div>
@@ -404,27 +597,14 @@ export default function ProductoDetalle() {
         </div>
 
         <div className="mt-2 text-sm">
-          Stock:{" "}
-          {sinStock ? (
-            <span className="text-red-600 font-medium">Sin stock</span>
-          ) : (
-            <span>{p.stock}</span>
-          )}
+          Stock: {sinStock ? <span className="text-red-600 font-medium">Sin stock</span> : <span>{p.stock}</span>}
         </div>
 
         <p className="mt-4 text-gray-700 whitespace-pre-line">{p.descripcion}</p>
 
         <div className="mt-6 flex items-stretch gap-3">
           <div className="flex items-stretch border rounded-md overflow-hidden">
-            <button
-              type="button"
-              onClick={() => step(-1)}
-              className="px-3 text-base disabled:opacity-50"
-              disabled={sinStock}
-              aria-label="Disminuir cantidad"
-            >
-              −
-            </button>
+            <button type="button" onClick={() => step(-1)} className="px-3 text-base" disabled={sinStock} aria-label="Disminuir cantidad">−</button>
             <input
               type="text"
               inputMode="numeric"
@@ -441,7 +621,7 @@ export default function ProductoDetalle() {
             <button
               type="button"
               onClick={() => step(1)}
-              className="px-3 text-base disabled:opacity-50"
+              className="px-3 text-base"
               disabled={sinStock || (typeof p.stock === "number" && parseClamp(qtyStr) >= p.stock)}
               aria-label="Aumentar cantidad"
             >
@@ -452,7 +632,7 @@ export default function ProductoDetalle() {
           <button
             onClick={addToCart}
             disabled={sinStock}
-            className="px-4 py-2 rounded-md bg-black text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`px-4 py-2 rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${added ? "bg-green-600" : "bg-black"}`}
           >
             Agregar al carrito
           </button>

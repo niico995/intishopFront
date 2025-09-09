@@ -19,8 +19,8 @@ export default function Buscar() {
       setLoading(true);
       try {
         const url = seller
-          ? `products/public/productos/?seller=${seller}`
-          : `products/public/productos/?search=${encodeURIComponent(q)}&ordering=-creado`;
+          ? `products/tienda/productos/?seller=${seller}`
+          : `products/tienda/productos/?search=${encodeURIComponent(q)}&ordering=-creado`;
 
         const r = await axios.get(url);
         const list = r.data?.results ? r.data.results : (r.data || []);

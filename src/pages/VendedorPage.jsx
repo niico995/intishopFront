@@ -21,7 +21,7 @@ export default function VendedorPage() {
       try {
         const [vRes, pRes] = await Promise.all([
           axiosPublic.get(`sellers/public/${id}/`),
-          axiosPublic.get(`products/public/productos/?seller=${id}`),
+          axiosPublic.get(`products/public/?seller=${id}`),
         ]);
         setSeller(vRes.data);
         setProductos(pRes.data?.results || pRes.data || []);

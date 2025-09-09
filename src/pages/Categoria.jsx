@@ -17,7 +17,7 @@ export default function Categoria() {
   useEffect(() => {
     let cancel = false;
     async function run() {
-      const url = `products/public/productos/?categoria=${encodeURIComponent(nombreCategoria)}&page=${page}${ordering ? `&ordering=${ordering}` : ""}`;
+      const url = `products/tienda/productos/?categoria=${encodeURIComponent(nombreCategoria)}&page=${page}${ordering ? `&ordering=${ordering}` : ""}`;
       const r = await axios.get(url);
       if (!cancel) {
         const data = r.data.results ? r.data : { results: r.data, count: (r.data?.length || 0) };
