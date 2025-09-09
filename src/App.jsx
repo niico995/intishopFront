@@ -209,6 +209,10 @@ import VentasVendedor from "./pages/Ventas";
 import PagoExito from "./pages/pagos/PagoExito";
 import PagoError from "./pages/pagos/PagoError";
 
+import RecuperarPassword from "./pages/RecuperarPassword";
+import NuevaPassword from "./pages/NuevaPassword";
+
+
 // Layout público con Navbar
 function PublicLayout() {
   return (
@@ -313,6 +317,9 @@ function App() {
 
             {/* ========= 404 → tienda ========= */}
             <Route path="*" element={<Navigate to="/" replace />} />
+
+            <Route path="/recuperar-password" element={<RecuperarPassword />} />
+            <Route path="/nueva-password" element={<NuevaPassword />} />
           </Routes>
         </Router>
       </CartProvider>
