@@ -7,6 +7,8 @@ import { useCart } from "./CartContext";
 
 const DEBOUNCE_MS = 400;
 const MIN_CHARS = 2;
+const SEARCH_ENDPOINT = "products/public/"; // 👈 endpoint público correcto
+const SEARCH_ORDER = "-id";                  // 👈 evita 'creado' que no existe
 
 /* Helpers */
 function decodeJWT(raw) {
@@ -26,7 +28,7 @@ function tokenIsValid() {
   const tok = localStorage.getItem("token") || localStorage.getItem("access");
   if (!tok) return false;
   const payload = decodeJWT(tok);
-  if (!payload?.exp) return true; // si no hay exp, asumimos válido
+  if (!payload?.exp) return true;
   const now = Math.floor(Date.now() / 1000);
   return payload.exp > now;
 }
@@ -46,6 +48,11 @@ export default function NavBar() {
   const [q, setQ] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+
+  // Dropdown de categorías por CLICK
+  const [catsOpen, setCatsOpen] = useState(false);
+  const catsBtnRef = useRef(null);
+  const catsMenuRef = useRef(null);
 
   // Autocomplete
   const [loadingSug, setLoadingSug] = useState(false);
@@ -105,7 +112,28 @@ export default function NavBar() {
   const closeAllMobile = () => {
     setMobileOpen(false);
     setMobileSearchOpen(false);
+    setCatsOpen(false);
   };
+
+  // Cerrar dropdown de categorías al click afuera / Escape
+  useEffect(() => {
+    function onDocDown(e) {
+      if (!catsOpen) return;
+      const t = e.target;
+      if (catsBtnRef.current?.contains(t)) return;
+      if (catsMenuRef.current?.contains(t)) return;
+      setCatsOpen(false);
+    }
+    function onEsc(e) {
+      if (e.key === "Escape") setCatsOpen(false);
+    }
+    document.addEventListener("mousedown", onDocDown);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDocDown);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [catsOpen]);
 
   // ---------- AUTOCOMPLETE ----------
   const combined = useMemo(() => {
@@ -143,11 +171,12 @@ export default function NavBar() {
     const myId = ++reqIdRef.current;
     setLoadingSug(true);
     try {
+      // 👇 endpoint público correcto y order por -id
       const pr = await axiosPublic
         .get(
-          `products/tienda/productos/?search=${encodeURIComponent(
-            query
-          )}&ordering=-creado&limit=12`
+          `${SEARCH_ENDPOINT}?search=${encodeURIComponent(query)}&ordering=${encodeURIComponent(
+            SEARCH_ORDER
+          )}&limit=12`
         )
         .catch(() => ({ data: [] }));
 
@@ -200,7 +229,7 @@ export default function NavBar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  // Cerrar dropdown al click afuera
+  // Cerrar dropdown de sugerencias al click afuera
   useEffect(() => {
     function onClickOutside(e) {
       if (!openSug) return;
@@ -237,7 +266,6 @@ export default function NavBar() {
       return navigateTo("/login");
     }
 
-    // Si ya sabemos el rol, usamos eso; si no, tratamos de pedirlo
     let r = role;
     if (!r && !roleLoading) {
       try {
@@ -246,7 +274,6 @@ export default function NavBar() {
         r = me.data?.role || null;
         setRole(r);
       } catch {
-        // si falla, intentamos igual con el guess del token
         r = guessRoleFromToken();
         setRole(r);
       } finally {
@@ -324,23 +351,35 @@ export default function NavBar() {
           IntiShop
         </Link>
 
-        {/* Categorías (desktop) */}
-        <div className="relative group hidden lg:block">
-          <button className="px-3 py-2 rounded-md hover:bg-gray-100" aria-haspopup="true">
+        {/* Categorías (desktop) — por CLICK */}
+        <div className="relative hidden lg:block">
+          <button
+            ref={catsBtnRef}
+            className="px-3 py-2 rounded-md hover:bg-gray-100"
+            aria-haspopup="true"
+            aria-expanded={catsOpen}
+            onClick={() => setCatsOpen((v) => !v)}
+          >
             Categorías
           </button>
-          <div className="absolute left-0 mt-2 hidden group-hover:block bg-white border rounded-md shadow-md z-20 max-h-[70vh] overflow-auto min-w-56">
-            {cats.map((c) => (
-              <Link
-                key={c.id}
-                to={`/c/${encodeURIComponent(String(c.nombre || "").toLowerCase())}`}
-                className="block px-4 py-2 hover:bg-gray-50"
-                onClick={() => setOpenSug(false)}
-              >
-                {c.nombre}
-              </Link>
-            ))}
-          </div>
+
+          {catsOpen && (
+            <div
+              ref={catsMenuRef}
+              className="absolute left-0 top-full bg-white border rounded-md shadow-md z-30 max-h-[70vh] overflow-auto min-w-56"
+            >
+              {cats.map((c) => (
+                <Link
+                  key={c.id}
+                  to={`/c/${encodeURIComponent(String(c.nombre || "").toLowerCase())}`}
+                  className="block px-4 py-2 hover:bg-gray-50"
+                  onClick={() => setCatsOpen(false)}
+                >
+                  {c.nombre}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Search (desktop) */}
@@ -396,7 +435,6 @@ export default function NavBar() {
             Quiero ser socio
           </Link>
 
-          {/* Si no está logueado: Login; si está logueado: Mi perfil (dinámico) */}
           {isLogged ? (
             <button
               onClick={goToProfile}
