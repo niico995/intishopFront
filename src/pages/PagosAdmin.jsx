@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import axiosAuth from "../api/axiosAuth";
 
 const PagosAdmin = () => {
   const [pagos, setPagos] = useState([]);
@@ -8,11 +9,7 @@ const PagosAdmin = () => {
   useEffect(() => {
     const fetchPagos = async () => {
       try {
-        const res = await axios.get('https://intishopback.onrender.com/api/sellers/pagos/todos/', {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        const res = await axiosAuth.get("sellers/pagos/todos/");
         setPagos(res.data);
       } catch (err) {
         console.error(err);

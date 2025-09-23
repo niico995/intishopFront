@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import axiosAuth from "../api/axiosAuth";
 
 const CrearPerfilSocio = () => {
   const [perfil, setPerfil] = useState({
@@ -28,15 +29,7 @@ const CrearPerfilSocio = () => {
     setMensaje('');
     setError('');
     try {
-      await axios.post(
-        'https://intishopback.onrender.com/api/sellers/crear-perfil/',
-        perfil,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await axiosAuth.post("sellers/crear-perfil/", perfil);
       setMensaje('Perfil creado correctamente');
       setTimeout(() => navigate('/mi-perfil'), 1500); // lo lleva al edit
     } catch (err) {

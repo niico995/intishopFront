@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import axiosAuth from '../api/axiosAuth';
+
 
 const MiPerfilSocio = () => {
   const [perfil, setPerfil] = useState({
@@ -20,14 +22,7 @@ const MiPerfilSocio = () => {
   useEffect(() => {
     const fetchPerfil = async () => {
       try {
-        const res = await axios.get(
-          'https://intishopback.onrender.com/api/sellers/mi-perfil/',
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
+        const res = await axiosAuth.get("sellers/mi-perfil/");
         setPerfil(res.data);
       } catch (err) {
         console.error(err);
@@ -50,15 +45,7 @@ const MiPerfilSocio = () => {
     setMensaje('');
     setError('');
     try {
-      await axios.put(
-        'https://intishopback.onrender.com/api/sellers/mi-perfil/',
-        perfil,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      await axiosAuth.put("sellers/mi-perfil/", perfil);
       setMensaje('Perfil actualizado correctamente');
     } catch (err) {
       console.error(err);

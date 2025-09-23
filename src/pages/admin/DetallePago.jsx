@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import axiosAuth from "../../api/axiosAuth";
 
 export default function DetallePagos() {
   const { id } = useParams(); // socio_id
@@ -11,9 +12,7 @@ export default function DetallePagos() {
   useEffect(() => {
     const fetchDetalle = async () => {
       try {
-        const res = await axios.get(`https://intishopback.onrender.com/api/admin/pagos/socio/${id}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await axiosAuth.get(`admin/pagos/socio/${id}/`);
         setPagos(res.data);
       } catch (err) {
         console.error('❌ Error al cargar detalle:', err.response?.data || err);

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import axiosAuth from "../api/axiosAuth";
+
 
 const PagosSocio = () => {
   const [data, setData] = useState({ pendientes: [], pagados: [] });
@@ -23,10 +25,7 @@ const PagosSocio = () => {
   useEffect(() => {
     const fetchPagos = async () => {
       try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_BASE_URL}/api/sellers/pagos/mios/`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const res = await axiosAuth.get("sellers/pagos/mios/");
         setData(normalize(res.data));
       } catch (err) {
         console.error('PagosSocio error:', err?.response?.status, err?.response?.data || err?.message);

@@ -2,15 +2,15 @@ import axiosInstance from '../api/axiosConfig';
 
 const api = {
   products: {
-    destacados: () => axiosInstance.get('/products/home/destacados/'),
-    categorias:  () => axiosInstance.get('/products/categorias/'),
+    destacados: () => axiosInstance.get('products/home/destacados/'),
+    categorias:  () => axiosInstance.get('products/categorias/'),
   },
   users: {
-    me:    () => axiosInstance.get('/users/me/'),
-    login: (data) => axiosInstance.post('/users/login/', data),
+    me:    () => axiosInstance.get('users/me/'),
+    login: (data) => axiosInstance.post('users/login/', data),
   },
   sellers: {
-    miPerfil: () => axiosInstance.get('/sellers/mi-perfil/'),
+    miPerfil: () => axiosInstance.get('sellers/mi-perfil/'),
   },
 };
 
