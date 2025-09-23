@@ -76,13 +76,15 @@
 
 // export default api;
 // src/services/api.js
+// src/services/api.js
 import axios from "axios";
 
-const API_ROOT =
-  (import.meta.env.VITE_API_URL?.replace(/\/+$/, "") || "https://intishopback.onrender.com/api/".replace(/\/+$/, ""));
+const API_ROOT = (
+  import.meta.env.VITE_API_URL || "http://localhost:8000/api/"
+).replace(/\/+$/, "");
 
-// Si VITE_API_URL ya incluye /api/, dejamos así; si no, agregálo.
-const baseURL = API_ROOT.endsWith("/api") ? API_ROOT + "/" : (API_ROOT + "/");
+// Si VITE_API_URL ya incluye /api, aseguramos una sola barra al final
+const baseURL = API_ROOT.endsWith("/api") ? API_ROOT + "/" : API_ROOT + "/";
 
 const api = axios.create({
   baseURL,
@@ -90,14 +92,17 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// Meté access/token si existe
+// token en cada request (access o token)
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("access") || localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 
-// Refresh automático si 401 y hay refresh en localStorage
+// refresh token (si existe)
 let refreshing = null;
 api.interceptors.response.use(
   (r) => r,
@@ -110,19 +115,21 @@ api.interceptors.response.use(
         const refresh = localStorage.getItem("refresh");
         if (!refresh) return Promise.reject(error);
 
-        // deducimos root del backend (quita el /api final si está)
+        // deduce root (quita /api al final)
         const root = baseURL.replace(/\/api\/?$/, "");
-
         refreshing = fetch(`${root}/api/token/refresh/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh }),
         })
-          .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+          .then((r) => (r.ok ? r.json() : null))
           .then((d) => {
             const newAccess = d?.access;
-            if (newAccess) localStorage.setItem("access", newAccess);
-            return newAccess;
+            if (newAccess) {
+              localStorage.setItem("token", newAccess);
+              api.defaults.headers.common.Authorization = `Bearer ${newAccess}`;
+            }
+            return newAccess || null;
           })
           .finally(() => (refreshing = null));
       }
