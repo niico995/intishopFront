@@ -218,7 +218,7 @@
 //   );
 // }
 import { useEffect, useMemo, useState } from "react";
-import axios, { API_BASE } from "../api/axiosConfig";
+import axios from "../api/axiosConfig";        // ⬅️ solo default, sin { API_BASE }
 import { toast } from "../utils/notify";
 
 export default function CargarProducto() {
@@ -257,7 +257,10 @@ export default function CargarProducto() {
   };
 
   useEffect(() => {
-    console.log("[CargarProducto] API_BASE:", API_BASE);
+    // Log opcional de la base URL real que está usando axios
+    try {
+      console.log("[CargarProducto] baseURL:", axios.defaults.baseURL);
+    } catch {}
     fetchCategorias();
   }, []);
 
@@ -278,18 +281,17 @@ export default function CargarProducto() {
     if (!nombre) return toast("Ingresá un nombre de categoría", "warning");
     setCreatingCat(true);
     try {
-      // Podés usar esta ruta o "products/categorias/crear/" (el back acepta ambas)
-      const res = await axios.post(
-        "products/categorias/",
-        { nombre },
-        { headers: { "Content-Type": "application/json" } }
-      );
+      // El back acepta también "products/categorias/crear/" si preferís
+      const res = await axios.post("products/categorias/", { nombre });
       const creada = res?.data;
       toast("Categoría creada", "success");
       setNewCat("");
       if (creada?.id) {
         setCategorias((prev) => [...prev, creada].sort((a, b) => a.nombre.localeCompare(b.nombre)));
-        setFormData((prev) => ({ ...prev, categorias: [...new Set([...(prev.categorias || []), creada.id])] }));
+        setFormData((prev) => ({
+          ...prev,
+          categorias: [...new Set([...(prev.categorias || []), creada.id])],
+        }));
       } else {
         fetchCategorias();
       }
@@ -322,10 +324,20 @@ export default function CargarProducto() {
 
       await axios.post("products/crear/", payload);
       toast("Producto creado con éxito", "success");
-      setFormData({ nombre: "", descripcion: "", costo: "", costo_envio: "", stock: "", categorias: [] });
+      setFormData({
+        nombre: "",
+        descripcion: "",
+        costo: "",
+        costo_envio: "",
+        stock: "",
+        categorias: [],
+      });
     } catch (err) {
       console.error(err);
-      const msg = err?.response?.data?.error || err?.response?.data?.detail || "No se pudo crear el producto";
+      const msg =
+        err?.response?.data?.error ||
+        err?.response?.data?.detail ||
+        "No se pudo crear el producto";
       toast(msg, "error");
     } finally {
       setSubmitting(false);
