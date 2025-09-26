@@ -342,26 +342,10 @@
 //     </div>
 //   );
 // }
+// src/pages/auth/Login.jsx
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "../../api/axiosConfig";
-
-// (opcional) si querés seguir viendo claims del JWT
-function decodeJwt(token) {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return {};
-  }
-}
 
 export default function Login() {
   const navigate = useNavigate();
@@ -381,7 +365,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // ⬇️ Importante: endpoint completo relativo a /api/
+      // 1) Login
       const { data } = await axios.post("users/login/", {
         email: form.email.trim().toLowerCase(),
         password: form.password,
@@ -390,26 +374,28 @@ export default function Login() {
       const { access, refresh } = data || {};
       if (!access) throw new Error("No se recibió el token de acceso.");
 
-      // guardar tokens
       localStorage.setItem("access", access);
       localStorage.setItem("token", access);
       if (refresh) localStorage.setItem("refresh", refresh);
 
-      // 🔎 en vez de depender de claims, chequeo el perfil real
-      try {
-        await axios.get("sellers/mi-perfil/");
-        navigate("/socio/productos", { replace: true });
-      } catch (e2) {
-        const st = e2?.response?.status;
-        if (st === 403 || st === 404) {
-          navigate("/socio/crear-perfil", { replace: true });
-        } else {
-          // si algo raro pasó, al home
-          navigate("/", { replace: true });
-        }
+      // 2) Un solo request decide el destino
+      const me = await axios.get("users/me/");
+      const role = me?.data?.role;
+      const hasSeller = !!me?.data?.seller_profile_exists;
+
+      if (role === "admin") {
+        navigate("/admin", { replace: true });
+        return;
       }
+
+      if (role === "socio" || role === "seller") {
+        navigate(hasSeller ? "/socio/productos" : "/socio/crear-perfil", { replace: true });
+        return;
+      }
+
+      // cliente u otro rol
+      navigate("/tienda", { replace: true }); // ajustá si tu home de cliente es otro
     } catch (err) {
-      console.error("Error de login:", err);
       const apiMsg =
         err?.response?.data?.detail ||
         err?.response?.data?.error ||
