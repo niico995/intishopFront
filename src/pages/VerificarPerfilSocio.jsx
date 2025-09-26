@@ -134,9 +134,6 @@
 // }
 
 
-import { useEffect, useState } from 'react';
-import { useNavigate, Outlet, useLocation } from 'react-router-dom';
-import axios from '../api/axiosConfig';
 
 /**
  * Guard para rutas de SOCIO.
