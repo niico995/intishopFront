@@ -91,7 +91,7 @@ export default function VerificarPerfilSocio() {
 
       try {
         // axiosInstance ya agrega el Authorization
-        const res = await axiosInstance.get("sellers/mi-perfil/");
+        const res = await axiosInstance.get("api/sellers/mi-perfil/");
         if (!cancelado && res.status === 200) {
           setCargando(false); // tiene perfil → renderiza children
         }
