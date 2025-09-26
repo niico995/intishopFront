@@ -183,18 +183,174 @@
 //   );
 // }
 // src/pages/login/login.jsx
+// import { useState } from "react";
+// import { useNavigate,useLocation, Link } from "react-router-dom";
+// import { motion } from "framer-motion";
+// import { Mail, Lock, ShieldCheck, ArrowRight, Eye, EyeOff, RefreshCw, Store, UserCog } from "lucide-react";
+// import api from "../../services/api";
+// import axiosInstance from "../../api/axiosConfig";
+// // ==== helpers ====
+// function decodeJwt(token) {
+//   try {
+//     const base64Url = token.split(".")[1];
+//     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+//     // atob + decodeURIComponent para caracteres unicode
+//     const jsonPayload = decodeURIComponent(
+//       atob(base64)
+//         .split("")
+//         .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+//         .join("")
+//     );
+//     return JSON.parse(jsonPayload);
+//   } catch {
+//     return {};
+//   }
+// }
+
+// export default function Login() {
+//   const navigate = useNavigate();
+//   const location = useLocation();
+//   const [form, setForm] = useState({ email: "", password: "" });
+//   const [loading, setLoading] = useState(false);
+//   const [errorMsg, setErrorMsg] = useState("");
+
+//   const from = location.state?.from || "/";
+
+//   const onChange = (e) => {
+//     const { name, value } = e.target;
+//     setForm((p) => ({ ...p, [name]: value }));
+//   };
+
+//   const onSubmit = async (e) => {
+//     e.preventDefault();
+//     setErrorMsg("");
+//     setLoading(true);
+
+//     try {
+//       const { data } = await axiosInstance.post("login/", {
+//         email: form.email.trim().toLowerCase(),
+//         password: form.password,
+//       });
+
+//       const { access, refresh } = data || {};
+//       if (!access) {
+//         throw new Error("No se recibió el token de acceso.");
+//       }
+
+//       // Guardar tokens (compat con el resto del código)
+//       localStorage.setItem("token", access);
+//       localStorage.setItem("access", access);
+//       if (refresh) localStorage.setItem("refresh", refresh);
+
+//       // Decodificar claims para rutear
+//       const payload = decodeJwt(access);
+//       const role = payload.role || "cliente";
+//       const isAdmin = !!payload.is_admin || !!payload.is_staff || !!payload.is_superuser;
+//       const hasSellerProfile = !!payload.has_seller_profile;
+
+//       // 🎯 Redirecciones
+//       if (isAdmin || role === "admin") {
+//         navigate("/admin", { replace: true });
+//         return;
+//       }
+
+//       if (role === "socio" || role === "seller" || role === "vendedor") {
+//         navigate(hasSellerProfile ? "/socio/productos" : "/socio/crear-perfil", { replace: true });
+//         return;
+//       }
+
+//       // Cliente por defecto
+//       navigate("/dashboard-cliente", { replace: true });
+//     } catch (err) {
+//       console.error("Error de login:", err);
+//       const apiMsg =
+//         err?.response?.data?.detail ||
+//         err?.response?.data?.error ||
+//         "Email o contraseña incorrectos.";
+//       setErrorMsg(apiMsg);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   return (
+//     <div className="min-h-[70vh] flex items-center justify-center p-4">
+//       <form
+//         onSubmit={onSubmit}
+//         className="w-full max-w-md bg-white shadow-lg rounded-2xl p-6 space-y-4"
+//       >
+//         <h1 className="text-2xl font-bold text-center">Iniciar sesión</h1>
+
+//         {errorMsg && (
+//           <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">
+//             {errorMsg}
+//           </div>
+//         )}
+
+//         <div className="space-y-1">
+//           <label htmlFor="email" className="text-sm font-medium">
+//             Email
+//           </label>
+//           <input
+//             id="email"
+//             name="email"
+//             type="email"
+//             autoComplete="email"
+//             className="w-full border rounded-lg px-3 py-2 outline-none focus:ring focus:ring-black/10"
+//             placeholder="tu@email.com"
+//             value={form.email}
+//             onChange={onChange}
+//             required
+//           />
+//         </div>
+
+//         <div className="space-y-1">
+//           <label htmlFor="password" className="text-sm font-medium">
+//             Contraseña
+//           </label>
+//           <input
+//             id="password"
+//             name="password"
+//             type="password"
+//             autoComplete="current-password"
+//             className="w-full border rounded-lg px-3 py-2 outline-none focus:ring focus:ring-black/10"
+//             placeholder="••••••••"
+//             value={form.password}
+//             onChange={onChange}
+//             required
+//           />
+//         </div>
+
+//         <button
+//           type="submit"
+//           disabled={loading}
+//           className="w-full rounded-xl py-2 font-semibold border hover:bg-black hover:text-white transition disabled:opacity-60"
+//         >
+//           {loading ? "Ingresando..." : "Ingresar"}
+//         </button>
+
+//         <div className="text-center text-sm">
+//           <Link to="/registro/cliente" className="underline">
+//             Crear cuenta
+//           </Link>
+//           <span className="mx-2">·</span>
+//           <Link to="/recuperar-password" className="underline">
+//             ¿Olvidaste tu contraseña?
+//           </Link>
+//         </div>
+//       </form>
+//     </div>
+//   );
+// }
 import { useState } from "react";
-import { useNavigate,useLocation, Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Mail, Lock, ShieldCheck, ArrowRight, Eye, EyeOff, RefreshCw, Store, UserCog } from "lucide-react";
-import api from "../../services/api";
-import axiosInstance from "../../api/axiosConfig";
-// ==== helpers ====
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import axios from "../../api/axiosConfig";
+
+// (opcional) si querés seguir viendo claims del JWT
 function decodeJwt(token) {
   try {
     const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    // atob + decodeURIComponent para caracteres unicode
     const jsonPayload = decodeURIComponent(
       atob(base64)
         .split("")
@@ -214,8 +370,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const from = location.state?.from || "/";
-
   const onChange = (e) => {
     const { name, value } = e.target;
     setForm((p) => ({ ...p, [name]: value }));
@@ -227,40 +381,33 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const { data } = await axiosInstance.post("login/", {
+      // ⬇️ Importante: endpoint completo relativo a /api/
+      const { data } = await axios.post("users/login/", {
         email: form.email.trim().toLowerCase(),
         password: form.password,
       });
 
       const { access, refresh } = data || {};
-      if (!access) {
-        throw new Error("No se recibió el token de acceso.");
-      }
+      if (!access) throw new Error("No se recibió el token de acceso.");
 
-      // Guardar tokens (compat con el resto del código)
-      localStorage.setItem("token", access);
+      // guardar tokens
       localStorage.setItem("access", access);
+      localStorage.setItem("token", access);
       if (refresh) localStorage.setItem("refresh", refresh);
 
-      // Decodificar claims para rutear
-      const payload = decodeJwt(access);
-      const role = payload.role || "cliente";
-      const isAdmin = !!payload.is_admin || !!payload.is_staff || !!payload.is_superuser;
-      const hasSellerProfile = !!payload.has_seller_profile;
-
-      // 🎯 Redirecciones
-      if (isAdmin || role === "admin") {
-        navigate("/admin", { replace: true });
-        return;
+      // 🔎 en vez de depender de claims, chequeo el perfil real
+      try {
+        await axios.get("sellers/mi-perfil/");
+        navigate("/socio/productos", { replace: true });
+      } catch (e2) {
+        const st = e2?.response?.status;
+        if (st === 403 || st === 404) {
+          navigate("/socio/crear-perfil", { replace: true });
+        } else {
+          // si algo raro pasó, al home
+          navigate("/", { replace: true });
+        }
       }
-
-      if (role === "socio" || role === "seller" || role === "vendedor") {
-        navigate(hasSellerProfile ? "/socio/productos" : "/socio/crear-perfil", { replace: true });
-        return;
-      }
-
-      // Cliente por defecto
-      navigate("/dashboard-cliente", { replace: true });
     } catch (err) {
       console.error("Error de login:", err);
       const apiMsg =
@@ -275,10 +422,7 @@ export default function Login() {
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center p-4">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-md bg-white shadow-lg rounded-2xl p-6 space-y-4"
-      >
+      <form onSubmit={onSubmit} className="w-full max-w-md bg-white shadow-lg rounded-2xl p-6 space-y-4">
         <h1 className="text-2xl font-bold text-center">Iniciar sesión</h1>
 
         {errorMsg && (
@@ -288,9 +432,7 @@ export default function Login() {
         )}
 
         <div className="space-y-1">
-          <label htmlFor="email" className="text-sm font-medium">
-            Email
-          </label>
+          <label htmlFor="email" className="text-sm font-medium">Email</label>
           <input
             id="email"
             name="email"
@@ -305,9 +447,7 @@ export default function Login() {
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="password" className="text-sm font-medium">
-            Contraseña
-          </label>
+          <label htmlFor="password" className="text-sm font-medium">Contraseña</label>
           <input
             id="password"
             name="password"
@@ -321,22 +461,14 @@ export default function Login() {
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-xl py-2 font-semibold border hover:bg-black hover:text-white transition disabled:opacity-60"
-        >
+        <button type="submit" disabled={loading} className="w-full rounded-xl py-2 font-semibold border hover:bg-black hover:text-white transition disabled:opacity-60">
           {loading ? "Ingresando..." : "Ingresar"}
         </button>
 
         <div className="text-center text-sm">
-          <Link to="/registro/cliente" className="underline">
-            Crear cuenta
-          </Link>
+          <Link to="/registro/cliente" className="underline">Crear cuenta</Link>
           <span className="mx-2">·</span>
-          <Link to="/recuperar-password" className="underline">
-            ¿Olvidaste tu contraseña?
-          </Link>
+          <Link to="/recuperar-password" className="underline">¿Olvidaste tu contraseña?</Link>
         </div>
       </form>
     </div>

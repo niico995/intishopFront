@@ -57,17 +57,100 @@
 
 
 // VerificarPerfilSocio.jsx
+// import { useEffect, useState } from 'react';
+// import { useNavigate, Outlet, useLocation } from 'react-router-dom';
+// import axiosInstance from '../api/axiosConfig';
+
+// /**
+//  * Guard de rutas de SOCIO.
+//  * - Si NO hay token → login
+//  * - Si mi-perfil devuelve 200 → deja pasar
+//  * - Si mi-perfil devuelve 404/403 → redirige a /socio/crear-perfil
+//  * - Early-exit: si ya estoy en /socio/crear-perfil, NO verifico nada
+//  */
+// export default function VerificarPerfilSocio() {
+//   const navigate = useNavigate();
+//   const location = useLocation();
+//   const [cargando, setCargando] = useState(true);
+
+//   useEffect(() => {
+//     let cancelado = false;
+
+//     // ⛳️ Si ya estoy en /socio/crear-perfil, NO verificar (evita loops)
+//     if (location.pathname.startsWith("/socio/crear-perfil")) {
+//       setCargando(false);
+//       return;
+//     }
+
+//     const verificar = async () => {
+//       const token = localStorage.getItem("access") || localStorage.getItem("token");
+//       if (!token) {
+//         navigate("/login", { replace: true });
+//         return;
+//       }
+
+//       try {
+//         // axiosInstance ya agrega el Authorization
+//         const res = await axiosInstance.get("api/sellers/mi-perfil/");
+//         if (!cancelado && res.status === 200) {
+//           setCargando(false); // tiene perfil → renderiza children
+//         }
+//       } catch (err) {
+//         if (cancelado) return;
+//         const status = err?.response?.status;
+
+//         if (status === 401) {
+//           // token inválido / vencido
+//           localStorage.removeItem("token");
+//           localStorage.removeItem("access");
+//           localStorage.removeItem("refresh");
+//           navigate("/login", { replace: true });
+//         } else if (status === 403 || status === 404) {
+//           // autenticado pero sin perfil → a crear perfil
+//           navigate("/socio/crear-perfil", { replace: true });
+//         } else {
+//           console.error("Error verificando perfil:", status, err?.response?.data);
+//           // fallback prudente: mandamos al login
+//           navigate("/login", { replace: true });
+//         }
+//       }
+//     };
+
+//     verificar();
+//     return () => {
+//       cancelado = true;
+//     };
+//   }, [navigate, location.pathname]);
+
+//   if (cargando) {
+//     return (
+//       <div className="w-full flex justify-center mt-10">
+//         <p className="text-center">Verificando tu perfil...</p>
+//       </div>
+//     );
+//   }
+
+//   return <Outlet />;
+// }
+
+
 import { useEffect, useState } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
-import axiosInstance from '../api/axiosConfig';
+import axios from '../api/axiosConfig';
 
 /**
- * Guard de rutas de SOCIO.
+ * Guard para rutas de SOCIO.
  * - Si NO hay token → login
- * - Si mi-perfil devuelve 200 → deja pasar
- * - Si mi-perfil devuelve 404/403 → redirige a /socio/crear-perfil
- * - Early-exit: si ya estoy en /socio/crear-perfil, NO verifico nada
+ * - GET sellers/mi-perfil/:
+ *      200 => tiene perfil → deja pasar
+ *      403/404 => autenticado pero sin perfil → redirige a /socio/crear-perfil
+ *      401 => token inválido/expirado → login
+ * - Si ya estoy en /socio/crear-perfil, no verifica (evita loops)
  */
+import { useEffect, useState } from 'react';
+import { useNavigate, Outlet, useLocation } from 'react-router-dom';
+import axios from '../api/axiosConfig';
+
 export default function VerificarPerfilSocio() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,13 +159,13 @@ export default function VerificarPerfilSocio() {
   useEffect(() => {
     let cancelado = false;
 
-    // ⛳️ Si ya estoy en /socio/crear-perfil, NO verificar (evita loops)
+    // si ya estoy creando el perfil, no verifico (evita loops)
     if (location.pathname.startsWith("/socio/crear-perfil")) {
       setCargando(false);
       return;
     }
 
-    const verificar = async () => {
+    const run = async () => {
       const token = localStorage.getItem("access") || localStorage.getItem("token");
       if (!token) {
         navigate("/login", { replace: true });
@@ -90,44 +173,31 @@ export default function VerificarPerfilSocio() {
       }
 
       try {
-        // axiosInstance ya agrega el Authorization
-        const res = await axiosInstance.get("api/sellers/mi-perfil/");
-        if (!cancelado && res.status === 200) {
-          setCargando(false); // tiene perfil → renderiza children
-        }
+        await axios.get("sellers/mi-perfil/");
+        if (!cancelado) setCargando(false); // OK, tiene perfil
       } catch (err) {
         if (cancelado) return;
-        const status = err?.response?.status;
-
-        if (status === 401) {
-          // token inválido / vencido
-          localStorage.removeItem("token");
+        const st = err?.response?.status;
+        if (st === 401) {
           localStorage.removeItem("access");
           localStorage.removeItem("refresh");
+          localStorage.removeItem("token");
           navigate("/login", { replace: true });
-        } else if (status === 403 || status === 404) {
-          // autenticado pero sin perfil → a crear perfil
+        } else if (st === 403 || st === 404) {
           navigate("/socio/crear-perfil", { replace: true });
         } else {
-          console.error("Error verificando perfil:", status, err?.response?.data);
-          // fallback prudente: mandamos al login
+          console.error("VerificarPerfilSocio error:", st, err?.response?.data);
           navigate("/login", { replace: true });
         }
       }
     };
 
-    verificar();
-    return () => {
-      cancelado = true;
-    };
+    run();
+    return () => { cancelado = true; };
   }, [navigate, location.pathname]);
 
   if (cargando) {
-    return (
-      <div className="w-full flex justify-center mt-10">
-        <p className="text-center">Verificando tu perfil...</p>
-      </div>
-    );
+    return <div className="w-full flex justify-center mt-10"><p>Verificando tu perfil…</p></div>;
   }
 
   return <Outlet />;

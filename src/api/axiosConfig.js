@@ -15,21 +15,18 @@
 
 // export default axiosInstance;
 // src/api/axiosConfig.js
+// src/api/axiosConfig.js
 import axios from "axios";
 
-// Usa VITE_API_URL y asegura barra final; fallback local en dev
-const baseURL =
-  (import.meta.env.VITE_API_URL?.replace(/\/?$/, "/")) ||
-  "http://localhost:8000/api/";
+// Dejá la base apuntando a la RAÍZ (sin /api). Aseguro barra final.
+const base = (import.meta.env.VITE_API_URL || "").replace(/\/?$/, "/");
 
-const axiosInstance = axios.create({
-  baseURL,
-  withCredentials: false,
+const instance = axios.create({
+  baseURL: base,           // <- NO agregamos /api acá
   timeout: 15000,
 });
 
-// Adjunta Bearer si existe (cubre 'access' o 'token')
-axiosInstance.interceptors.request.use((config) => {
+instance.interceptors.request.use((config) => {
   const token = localStorage.getItem("access") || localStorage.getItem("token");
   if (token) {
     config.headers = config.headers || {};
@@ -38,4 +35,4 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
-export default axiosInstance;
+export default instance;
