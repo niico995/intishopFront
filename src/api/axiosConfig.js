@@ -16,16 +16,26 @@
 // export default axiosInstance;
 // src/api/axiosConfig.js
 // src/api/axiosConfig.js
+// src/api/axiosConfig.js
 import axios from "axios";
 
-// Dejá la base apuntando a la RAÍZ (sin /api). Aseguro barra final.
-const base = (import.meta.env.VITE_API_URL || "").replace(/\/?$/, "/");
+/**
+ * Usa VITE_API_URL si existe. Si no, fallback a "<origin>/api".
+ * Aseguramos "/" final.
+ *
+ * Ejemplos válidos de VITE_API_URL:
+ *   https://zfwthkc5-8000.brs.dev.../api
+ *   http://localhost:8000/api
+ */
+const raw = import.meta.env.VITE_API_URL?.trim() || (window.location.origin + "/api");
+const baseURL = raw.replace(/\/+$/,"") + "/";
 
 const instance = axios.create({
-  baseURL: base,           // <- NO agregamos /api acá
-  timeout: 15000,
+  baseURL,
+  withCredentials: false,
 });
 
+// Adjunta token (access o token) a **todas** las requests
 instance.interceptors.request.use((config) => {
   const token = localStorage.getItem("access") || localStorage.getItem("token");
   if (token) {
@@ -34,5 +44,10 @@ instance.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// (Opcional) log para confirmar en consola adónde pega
+if (import.meta.env.DEV) {
+  console.log("[axios] baseURL:", baseURL);
+}
 
 export default instance;
