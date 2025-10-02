@@ -238,7 +238,7 @@ export default function ProductCard({ product }) {
             value={qtyStr}
             onChange={onChangeQty}
             onBlur={onBlurQty}
-            className="w-14 text-center outline-none"
+            className="sm:w-1/2 md:w-1/3 lg:w-1/4text-center outline-none"
             disabled={sinStock}
             aria-label="Cantidad"
           />
