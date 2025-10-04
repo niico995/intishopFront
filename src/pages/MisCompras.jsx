@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axiosInstance from "../api/axiosConfig";
 import { toast } from "../utils/notify";
 
@@ -13,7 +13,17 @@ export default function MisCompras() {
     try {
       // El backend devuelve ventas del usuario (cliente) por email/user
       const { data } = await api.get("ventas/");
-      setCompras(Array.isArray(data) ? data : data?.results || []);
+      const list = Array.isArray(data) ? data : data?.results || [];
+
+      // Orden estable: más nuevas primero
+      list.sort((a, b) => {
+        const ta = new Date(a.fecha_venta || 0).getTime();
+        const tb = new Date(b.fecha_venta || 0).getTime();
+        if (tb !== ta) return tb - ta;
+        return (b.id || 0) - (a.id || 0);
+      });
+
+      setCompras(list);
     } catch (e) {
       console.error(e);
       toast("No pude cargar tus compras", "error");
@@ -44,6 +54,16 @@ export default function MisCompras() {
     }
   };
 
+  // 🔑 Genera una key única por CADA venta (evita merge por producto)
+  const filas = useMemo(() => {
+    return compras.map((v) => {
+      const ts = v.fecha_venta ? new Date(v.fecha_venta).getTime() : Date.now();
+      const rowKey =
+        v.line_hash || `${v.id}-${ts}-${v.cantidad}-${v.estado}-${v.vendedor_entrego ? 1 : 0}${v.cliente_recibio ? 1 : 0}`;
+      return { ...v, __rowKey: rowKey };
+    });
+  }, [compras]);
+
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <h2 className="text-xl font-semibold mb-3">Mis compras</h2>
@@ -55,11 +75,11 @@ export default function MisCompras() {
 
       {loading ? (
         <div className="text-sm text-gray-500">Cargando…</div>
-      ) : compras.length === 0 ? (
+      ) : filas.length === 0 ? (
         <div className="text-sm text-gray-600">No tenés compras todavía.</div>
       ) : (
         <div className="grid gap-2">
-          {compras.map((v) => {
+          {filas.map((v) => {
             const deshabilitar =
               v.cliente_recibio ||
               v.estado === "aprobado" ||
@@ -68,20 +88,19 @@ export default function MisCompras() {
 
             return (
               <div
-                key={v.id}
+                key={v.__rowKey}
                 className="border rounded p-3 flex items-center justify-between"
               >
                 <div className="space-y-1">
                   <div className="font-medium">
-                    {v.producto_nombre || `Producto #${v.producto}`} ×{" "}
-                    {v.cantidad}
+                    {v.producto_nombre || `Producto #${v.producto}`} × {v.cantidad}
                   </div>
                   <div className="text-sm text-gray-600">
                     Estado: <b>{v.estado}</b> — $
-                    {Number(v.precio_unitario).toFixed(2)} c/u
+                    {Number(v.precio_unitario ?? 0).toFixed(2)} c/u
                   </div>
                   <div className="text-xs text-gray-500">
-                    Vendedor: {v.seller_nombre || `#${v.seller}`}
+                    Vendedor: {v.seller_nombre || `#${v.seller}`} · Venta #{v.id}
                   </div>
                 </div>
                 <button
