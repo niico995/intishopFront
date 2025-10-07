@@ -36,6 +36,14 @@ export default function AdminLayout() {
           <NavLink to="/admin/config/precios" className={linkCls}>
             Multiplicador
           </NavLink>
+          <NavLink
+  to="/admin/pagos"
+  className={({ isActive }) =>
+    `block px-3 py-2 rounded ${isActive ? "bg-slate-900 text-white" : "hover:bg-slate-100"}`
+  }
+>
+  Pagos a socios
+</NavLink>
         </nav>
         <button
           onClick={() => {
