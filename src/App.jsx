@@ -60,7 +60,7 @@ import PagoError from "./pages/pagos/PagoError";
 
 import RecuperarPassword from "./pages/RecuperarPassword";
 import NuevaPassword from "./pages/NuevaPassword";
-
+import AdminPagos from "./pages/admin/AdminPagos";
 
 // Layout público con Navbar
 function PublicLayout() {
