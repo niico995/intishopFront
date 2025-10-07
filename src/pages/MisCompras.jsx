@@ -11,8 +11,8 @@ export default function MisCompras() {
   const cargarCompras = async () => {
     setLoading(true);
     try {
-      // El backend devuelve ventas del usuario (cliente) por email/user
-      const { data } = await api.get("ventas/");
+      // Cache-buster para evitar caché intermedio
+      const { data } = await api.get(`ventas/?_=${Date.now()}`);
       const list = Array.isArray(data) ? data : data?.results || [];
 
       // Orden estable: más nuevas primero
@@ -34,6 +34,10 @@ export default function MisCompras() {
 
   useEffect(() => {
     cargarCompras();
+    // Opcional: refresca al volver de otra pestaña
+    const onVisible = () => document.visibilityState === "visible" && cargarCompras();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -54,10 +58,10 @@ export default function MisCompras() {
     }
   };
 
-  // 🔑 Genera una key única por CADA venta (evita merge por producto)
+  // 🔑 Key totalmente única por venta para evitar cualquier reutilización por producto
   const filas = useMemo(() => {
     return compras.map((v) => {
-      const ts = v.fecha_venta ? new Date(v.fecha_venta).getTime() : Date.now();
+      const ts = v.fecha_venta ? new Date(v.fecha_venta).getTime() : 0;
       const rowKey =
         v.line_hash || `${v.id}-${ts}-${v.cantidad}-${v.estado}-${v.vendedor_entrego ? 1 : 0}${v.cliente_recibio ? 1 : 0}`;
       return { ...v, __rowKey: rowKey };
