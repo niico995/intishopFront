@@ -19,16 +19,16 @@ export default function BannersSocio() {
   const onFile = (e) => {
     const f = e.target.files[0];
     if (!f) return;
-    if (!f.type.includes("image/webp")) {
-      alert("Solo imágenes .webp");
-      e.target.value = "";
-      return;
-    }
-    if (f.size > 3 * 1024 * 1024) {
-      alert("Máximo 3MB");
-      e.target.value = "";
-      return;
-    }
+    // if (!f.type.includes("image/webp")) {
+    //   alert("Solo imágenes .webp");
+    //   e.target.value = "";
+    //   return;
+    // }
+    // if (f.size > 3 * 1024 * 1024) {
+    //   alert("Máximo 3MB");
+    //   e.target.value = "";
+    //   return;
+    // }
     setFile(f);
   };
 
