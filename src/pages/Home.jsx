@@ -279,51 +279,20 @@ import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/autoplay";
 
-/* ---------------------------
-   UI Helpers (solo estética)
-----------------------------*/
-function SectionTitle({ children, rightLink }) {
-  return (
-    <div className="mb-4 flex items-center justify-between">
-      <h2 className="text-xl md:text-2xl font-bold">{children}</h2>
-      {rightLink ? (
-        <a href={rightLink} className="text-sm font-medium underline">
-          Ver todo
-        </a>
-      ) : null}
-    </div>
-  );
-}
-
-function Badge({ children }) {
-  return (
-    <span className="inline-flex items-center rounded-xl border px-3 py-1 text-xs font-medium">
-      {children}
-    </span>
-  );
-}
-
 /* ----------------------------------
-   HERO (texto a la izquierda + banner)
-   Mantiene 100% dinamismo desde admin
+   HERO SOLO IMAGEN (admin)
+   - Usa únicamente las imágenes que sube el admin en banner_principal
+   - Sin textos ni CTA
 -----------------------------------*/
-function HeroBlock({ items = [] }) {
+function HeroOnlyImages({ items = [] }) {
   if (!Array.isArray(items) || items.length === 0) return null;
 
-  // Tomamos el primero para texto; mantenemos slideshow a la derecha
-  const first = items[0] || {};
-  const titulo = first.titulo || "Todo lo que necesitás, en un solo lugar";
-  const subtitulo = first.subtitulo || "Tecnología, electro, hogar y más";
-  const cta_text = first.cta_text || "Ver productos";
-  const cta_link = first.cta_link || "/tienda";
-
-  // normalizamos imágenes del slot para el carrusel (derecha)
   const slides = useMemo(
     () =>
       items.map((b, i) => ({
         id: b.id || i,
-        src: b.imagen_url || b.url || b,
-        alt: b.alt || b.titulo || `Banner ${i + 1}`,
+        src: b.imagen_url || b.url || b, // admitimos string directo por compatibilidad
+        alt: b.alt || `Banner ${i + 1}`,
         link: b.link || null,
       })),
     [items]
@@ -331,36 +300,15 @@ function HeroBlock({ items = [] }) {
 
   return (
     <section className="relative mt-6 overflow-hidden rounded-3xl border bg-white">
-      <div className="grid grid-cols-1 md:grid-cols-2">
-        {/* Columna izquierda: texto/CTA */}
-        <div className="p-8 md:p-12 lg:p-14">
-          <h1 className="text-3xl md:text-5xl font-extrabold leading-tight">{titulo}</h1>
-          <p className="mt-4 text-base md:text-lg opacity-80">{subtitulo}</p>
-          <div className="mt-6">
-            <a
-              href={cta_link}
-              className="inline-block rounded-2xl border px-5 py-2.5 font-medium hover:shadow"
-            >
-              {cta_text}
-            </a>
-          </div>
-
-          {/* Badges de confianza (no cambian datos) */}
-          <div className="mt-8 flex flex-wrap items-center gap-3 opacity-90">
-            <Badge>Pagá en cuotas</Badge>
-            <Badge>Débito / Efectivo</Badge>
-            <Badge>Envíos a todo el país</Badge>
-          </div>
-        </div>
-
-        {/* Columna derecha: slider de banners (admin) */}
-        <div className="relative h-[260px] md:h-full">
+      {/* Ratio flexible: alto mayor en desktop, sin texto arriba */}
+      <div className="relative w-full">
+        <div className="w-full h-[220px] sm:h-[260px] md:h-[360px] lg:h-[420px]">
           <Swiper
             modules={[Autoplay]}
             slidesPerView={1}
             spaceBetween={10}
             autoplay={slides.length > 1 ? { delay: 3500, disableOnInteraction: false } : false}
-            className="absolute inset-0"
+            className="w-full h-full"
           >
             {slides.map((s, i) => {
               const content = (
@@ -372,10 +320,11 @@ function HeroBlock({ items = [] }) {
                     className="h-full w-full object-cover"
                     loading={i === 0 ? "eager" : "lazy"}
                     decoding="async"
-                    sizes="(min-width:1024px) 600px, 100vw"
+                    sizes="(min-width:1024px) 1200px, 100vw"
                   />
                 </picture>
               );
+
               return (
                 <SwiperSlide key={s.id}>
                   {s.link ? (
@@ -396,8 +345,8 @@ function HeroBlock({ items = [] }) {
 }
 
 /* ----------------------------------
-   BLOQUE DE BANNER (para intermedio)
-   Mantiene tu dinámica 100%
+   BLOQUE DE BANNER (intermedio)
+   - Misma dinámica que ya usabas
 -----------------------------------*/
 function BannerBlock({ items = [], className = "" }) {
   if (!Array.isArray(items) || items.length === 0) return null;
@@ -451,6 +400,22 @@ function BannerBlock({ items = [], className = "" }) {
 }
 
 /* ----------------------------------
+   Título de sección (estético)
+-----------------------------------*/
+function SectionTitle({ children, rightLink }) {
+  return (
+    <div className="mb-4 flex items-center justify-between">
+      <h2 className="text-xl md:text-2xl font-bold">{children}</h2>
+      {rightLink ? (
+        <a href={rightLink} className="text-sm font-medium underline">
+          Ver todo
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
+/* ----------------------------------
    HOME (mismos endpoints/datos)
 -----------------------------------*/
 export default function Home() {
@@ -467,9 +432,9 @@ export default function Home() {
 
   return (
     <div className="mx-auto max-w-7xl">
-      {/* HERO principal (texto + slider admin) */}
+      {/* HERO: solo imágenes desde admin */}
       <div className="px-4 sm:px-6 lg:px-8">
-        <HeroBlock items={data.banner_principal || []} />
+        <HeroOnlyImages items={data.banner_principal || []} />
       </div>
 
       {/* DESTACADOS PRO */}

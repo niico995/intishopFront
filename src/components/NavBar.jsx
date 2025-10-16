@@ -722,7 +722,7 @@ const MIN_CHARS = 2;
 const SEARCH_ENDPOINT = "products/public/";
 const SEARCH_ORDER = "-id";
 
-/* Helpers idénticos a tu versión */
+/* Helpers (sin tocar tu lógica) */
 function decodeJWT(raw) {
   try {
     if (!raw) return null;
@@ -761,7 +761,7 @@ export default function NavBar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
-  // Dropdown de categorías (CLICK)
+  // Dropdown categorías (click)
   const [catsOpen, setCatsOpen] = useState(false);
   const catsBtnRef = useRef(null);
   const catsMenuRef = useRef(null);
@@ -788,7 +788,7 @@ export default function NavBar() {
   const { search } = useLocation();
   const { count } = useCart();
 
-  // Sync auth
+  // Sync auth al volver al tab o cambiar storage
   useEffect(() => {
     const sync = () => {
       const valid = tokenIsValid();
@@ -1038,9 +1038,9 @@ export default function NavBar() {
           aria-label="Abrir menú"
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen(true)}
-          className="lg:hidden rounded-xl border px-2 py-1 hover:bg-gray-50"
+          className="rounded-xl border px-2 py-1 hover:bg-gray-50 lg:hidden"
         >
-          ☰
+          <span className="block h-4 w-5 border-y-2 border-gray-900" />
         </button>
 
         {/* Logo */}
@@ -1056,11 +1056,11 @@ export default function NavBar() {
           <span>IntiShop</span>
         </Link>
 
-        {/* Categorías (desktop) — CLICK para mega-panel */}
+        {/* Botón Categorías (desktop) */}
         <div className="relative hidden lg:block">
           <button
             ref={catsBtnRef}
-            className="inline-flex items-center gap-2 rounded-2xl border px-3 py-2 hover:shadow"
+            className="inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm hover:shadow"
             aria-haspopup="true"
             aria-expanded={catsOpen}
             onClick={() => setCatsOpen((v) => !v)}
@@ -1098,7 +1098,7 @@ export default function NavBar() {
         <div ref={searchRef} className="relative hidden flex-1 lg:flex">
           <form onSubmit={submitSearch} className="flex w-full items-center">
             <div className="flex w-full items-center gap-2 rounded-2xl border px-3 py-2">
-              <span className="opacity-70">🔎</span>
+              <span className="select-none text-sm opacity-70">🔎</span>
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -1109,7 +1109,7 @@ export default function NavBar() {
                 aria-label="Buscar"
                 aria-autocomplete="list"
               />
-              <button className="rounded-xl border px-3 py-1.5 text-sm hover:shadow" type="submit">
+              <button className="rounded-2xl border px-3 py-1.5 text-sm hover:shadow" type="submit">
                 Buscar
               </button>
             </div>
@@ -1162,7 +1162,8 @@ export default function NavBar() {
             className="relative inline-flex items-center gap-2 rounded-2xl border px-3 py-2"
             aria-label="Ir al carrito"
           >
-            🛒 <span className="text-sm">Carrito</span>
+            <span className="select-none">🛒</span>
+            <span className="text-sm">Carrito</span>
             {count > 0 && (
               <span className="absolute -right-2 -top-2 rounded-full border bg-white px-1.5 text-xs font-semibold">
                 {count}
@@ -1177,7 +1178,7 @@ export default function NavBar() {
           className="ml-auto rounded-xl border px-2 py-1 hover:bg-gray-50 lg:hidden"
           onClick={() => setMobileSearchOpen((v) => !v)}
         >
-          🔎
+          <span className="select-none text-sm">🔎</span>
         </button>
       </div>
 
@@ -1187,7 +1188,7 @@ export default function NavBar() {
           <div ref={searchRef} className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
             <form onSubmit={submitSearch} className="flex gap-2">
               <div className="flex w-full items-center gap-2 rounded-2xl border px-3 py-2">
-                <span className="opacity-70">🔎</span>
+                <span className="select-none text-sm opacity-70">🔎</span>
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
@@ -1376,7 +1377,7 @@ function MobileMenu({ open, onClose, cats, cartCount, isLogged, onGoProfile }) {
         <nav className="h-[calc(100%-56px)] space-y-4 overflow-y-auto p-4">
           <div className="flex items-center justify-between">
             <Link to="/carrito" onClick={onClose} className="rounded-md border px-3 py-2 hover:bg-gray-50">
-              🛒 Carrito
+              Carrito
               {cartCount > 0 && (
                 <span className="ml-2 rounded-full bg-black px-1.5 text-xs text-white">{cartCount}</span>
               )}
