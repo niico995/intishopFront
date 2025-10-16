@@ -713,8 +713,8 @@
 // src/components/Navbar.jsx
 import { useEffect, useState, useRef, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import axiosPublic from "../api/axiosPublic";     // público (sin Authorization)
-import axiosAuth from "../api/axiosConfig";       // con Authorization cuando exista
+import axiosPublic from "../api/axiosPublic";
+import axiosAuth from "../api/axiosConfig";
 import { useCart } from "./CartContext";
 
 const DEBOUNCE_MS = 400;
@@ -722,7 +722,7 @@ const MIN_CHARS = 2;
 const SEARCH_ENDPOINT = "products/public/";
 const SEARCH_ORDER = "-id";
 
-/* Helpers (sin tocar tu lógica) */
+/* Helpers */
 function decodeJWT(raw) {
   try {
     if (!raw) return null;
@@ -735,7 +735,6 @@ function decodeJWT(raw) {
     return null;
   }
 }
-
 function tokenIsValid() {
   const tok = localStorage.getItem("token") || localStorage.getItem("access");
   if (!tok) return false;
@@ -744,7 +743,6 @@ function tokenIsValid() {
   const now = Math.floor(Date.now() / 1000);
   return payload.exp > now;
 }
-
 function guessRoleFromToken() {
   const tok = localStorage.getItem("token") || localStorage.getItem("access");
   const p = decodeJWT(tok);
@@ -760,11 +758,7 @@ export default function NavBar() {
   const [q, setQ] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-
-  // Dropdown categorías (click)
-  const [catsOpen, setCatsOpen] = useState(false);
-  const catsBtnRef = useRef(null);
-  const catsMenuRef = useRef(null);
+  const [catsOpen, setCatsOpen] = useState(false); // desktop dropdown
 
   // Autocomplete
   const [loadingSug, setLoadingSug] = useState(false);
@@ -778,6 +772,9 @@ export default function NavBar() {
   const [role, setRole] = useState(isLogged ? guessRoleFromToken() : null);
   const [roleLoading, setRoleLoading] = useState(false);
 
+  // Refs
+  const catsBtnRef = useRef(null);
+  const catsMenuRef = useRef(null);
   const searchRef = useRef(null);
   const popRef = useRef(null);
   const debounceRef = useRef(null);
@@ -788,7 +785,18 @@ export default function NavBar() {
   const { search } = useLocation();
   const { count } = useCart();
 
-  // Sync auth al volver al tab o cambiar storage
+  /* ------- BODY SCROLL LOCK para mobile menu ------- */
+  useEffect(() => {
+    if (mobileOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [mobileOpen]);
+
+  /* ------- Sync auth ------- */
   useEffect(() => {
     const sync = () => {
       const valid = tokenIsValid();
@@ -803,31 +811,30 @@ export default function NavBar() {
     };
   }, []);
 
-  // Categorías públicas
+  /* ------- Categorías ------- */
   useEffect(() => {
     let mounted = true;
     axiosPublic
       .get("products/categorias/")
       .then((r) => mounted && setCats(r.data || []))
       .catch(() => setCats([]));
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
-  // Preservar query si venís de /buscar
+  /* ------- Preservar query ------- */
   useEffect(() => {
     const params = new URLSearchParams(search);
     setQ(params.get("q") || "");
   }, [search]);
 
-  const closeAllMobile = () => {
+  const closeAll = () => {
     setMobileOpen(false);
     setMobileSearchOpen(false);
     setCatsOpen(false);
+    setOpenSug(false);
   };
 
-  // Cerrar dropdown categorías al click afuera / Escape
+  /* ------- Cerrar dropdown categorías por click afuera / ESC ------- */
   useEffect(() => {
     function onDocDown(e) {
       if (!catsOpen) return;
@@ -847,7 +854,41 @@ export default function NavBar() {
     };
   }, [catsOpen]);
 
-  // ---------- AUTOCOMPLETE ----------
+  /* ------- Debounce autocomplete ------- */
+  useEffect(() => {
+    const query = q.trim();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!query || query.length < MIN_CHARS) {
+      setOpenSug(false);
+      setProdSug([]);
+      setStoreSug([]);
+      setActiveIdx(-1);
+      return;
+    }
+    debounceRef.current = setTimeout(() => fetchSuggestions(query), DEBOUNCE_MS);
+    return () => clearTimeout(debounceRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
+  /* ------- Cerrar sugerencias click afuera ------- */
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (!openSug) return;
+      const t = e.target;
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(t) &&
+        popRef.current &&
+        !popRef.current.contains(t)
+      ) {
+        setOpenSug(false);
+      }
+    }
+    window.addEventListener("mousedown", onClickOutside);
+    return () => window.removeEventListener("mousedown", onClickOutside);
+  }, [openSug]);
+
+  /* ------- Autocomplete ------- */
   const combined = useMemo(() => {
     const prods = (prodSug || []).map((p) => ({
       kind: "product",
@@ -870,27 +911,18 @@ export default function NavBar() {
 
   async function fetchSuggestions(query) {
     const key = query.toLowerCase();
-
     if (cacheRef.current.has(key)) {
       const { prods, stores } = cacheRef.current.get(key);
-      setProdSug(prods);
-      setStoreSug(stores);
-      setOpenSug(true);
-      setActiveIdx(-1);
+      setProdSug(prods); setStoreSug(stores);
+      setOpenSug(true); setActiveIdx(-1);
       return;
     }
-
     const myId = ++reqIdRef.current;
     setLoadingSug(true);
     try {
       const pr = await axiosPublic
-        .get(
-          `${SEARCH_ENDPOINT}?search=${encodeURIComponent(query)}&ordering=${encodeURIComponent(
-            SEARCH_ORDER
-          )}&limit=12`
-        )
+        .get(`${SEARCH_ENDPOINT}?search=${encodeURIComponent(query)}&ordering=${encodeURIComponent(SEARCH_ORDER)}&limit=12`)
         .catch(() => ({ data: [] }));
-
       if (myId !== reqIdRef.current) return;
 
       const list = Array.isArray(pr.data?.results) ? pr.data.results : pr.data || [];
@@ -920,76 +952,37 @@ export default function NavBar() {
     }
   }
 
-  // Debounce input
-  useEffect(() => {
-    const query = q.trim();
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    if (!query || query.length < MIN_CHARS) {
-      setOpenSug(false);
-      setProdSug([]);
-      setStoreSug([]);
-      setActiveIdx(-1);
-      return;
-    }
-    debounceRef.current = setTimeout(() => {
-      fetchSuggestions(query);
-    }, DEBOUNCE_MS);
-
-    return () => clearTimeout(debounceRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
-
-  // Cerrar sugerencias al click afuera
-  useEffect(() => {
-    function onClickOutside(e) {
-      if (!openSug) return;
-      const t = e.target;
-      if (
-        searchRef.current &&
-        !searchRef.current.contains(t) &&
-        popRef.current &&
-        !popRef.current.contains(t)
-      ) {
-        setOpenSug(false);
-      }
-    }
-    window.addEventListener("mousedown", onClickOutside);
-    return () => window.removeEventListener("mousedown", onClickOutside);
-  }, [openSug]);
-
-  const navigateTo = (to) => {
-    setOpenSug(false);
-    closeAllMobile();
-    navigate(to);
-  };
-
+  /* ------- Navegación / handlers ------- */
+  const navigateTo = (to) => { setOpenSug(false); closeAll(); navigate(to); };
   const submitSearch = (e) => {
     e?.preventDefault?.();
     const query = q.trim();
     if (!query) return;
     navigateTo(`/buscar?q=${encodeURIComponent(query)}`);
   };
+  const onKeyDown = (e) => {
+    if (!openSug && (e.key === "ArrowDown" || e.key === "ArrowUp")) { setOpenSug(true); return; }
+    if (!openSug || combined.length === 0) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx((i) => (i + 1) % combined.length); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActiveIdx((i) => (i - 1 + combined.length) % combined.length); }
+    else if (e.key === "Enter") {
+      if (activeIdx >= 0 && combined[activeIdx]) { e.preventDefault(); navigateTo(combined[activeIdx].to); }
+      else submitSearch(e);
+    } else if (e.key === "Escape") setOpenSug(false);
+  };
 
-  // Perfil según rol (con verificación para socio)
   const goToProfile = async () => {
     if (!isLogged) return navigateTo("/login");
-
     let r = role;
     if (!r && !roleLoading) {
       try {
         setRoleLoading(true);
         const me = await axiosAuth.get("users/me/");
-        r = me.data?.role || null;
-        setRole(r);
+        r = me.data?.role || null; setRole(r);
       } catch {
-        r = guessRoleFromToken();
-        setRole(r);
-      } finally {
-        setRoleLoading(false);
-      }
+        r = guessRoleFromToken(); setRole(r);
+      } finally { setRoleLoading(false); }
     }
-
     if (r === "admin") return navigateTo("/admin");
     if (r === "socio" || r === "vendedor") {
       try {
@@ -1003,76 +996,52 @@ export default function NavBar() {
     return navigateTo("/dashboard-cliente");
   };
 
-  const onKeyDown = (e) => {
-    if (!openSug && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
-      setOpenSug(true);
-      return;
-    }
-    if (!openSug || combined.length === 0) return;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setActiveIdx((i) => (i + 1) % combined.length);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActiveIdx((i) => (i - 1 + combined.length) % combined.length);
-    } else if (e.key === "Enter") {
-      if (activeIdx >= 0 && combined[activeIdx]) {
-        e.preventDefault();
-        const item = combined[activeIdx];
-        navigateTo(item.to);
-      } else {
-        submitSearch(e);
-      }
-    } else if (e.key === "Escape") {
-      setOpenSug(false);
-    }
-  };
-
+  /* ------- RENDER ------- */
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-      {/* Top bar */}
+    <header className="sticky top-0 z-50 w-full border-b bg-white/85 backdrop-blur">
+      {/* Barra principal */}
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        {/* Hamburguesa (mobile) */}
+        {/* Menú móvil */}
         <button
           aria-label="Abrir menú"
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen(true)}
-          className="rounded-xl border px-2 py-1 hover:bg-gray-50 lg:hidden"
+          className="rounded-lg border p-2 hover:bg-gray-50 lg:hidden"
         >
-          <span className="block h-4 w-5 border-y-2 border-gray-900" />
+          <span className="block h-0.5 w-5 bg-gray-900" />
+          <span className="mt-1 block h-0.5 w-5 bg-gray-900" />
+          <span className="mt-1 block h-0.5 w-5 bg-gray-900" />
         </button>
 
         {/* Logo */}
         <Link
           to="/"
-          className="flex items-center gap-2 text-xl font-semibold"
-          onClick={() => {
-            setOpenSug(false);
-            closeAllMobile();
-          }}
+          className="flex items-center gap-2 text-lg font-semibold"
+          onClick={() => closeAll()}
         >
-          <span className="inline-block h-8 w-8 rounded-xl bg-gray-900" />
+          <span className="inline-block h-8 w-8 rounded-lg bg-gray-900" />
           <span>IntiShop</span>
         </Link>
 
-        {/* Botón Categorías (desktop) */}
+        {/* Categorías (desktop) */}
         <div className="relative hidden lg:block">
           <button
             ref={catsBtnRef}
-            className="inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm hover:shadow"
+            className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm hover:shadow"
             aria-haspopup="true"
             aria-expanded={catsOpen}
             onClick={() => setCatsOpen((v) => !v)}
           >
             Categorías
-            <span className={`transition ${catsOpen ? "rotate-180" : ""}`}>▾</span>
+            <svg className={`h-4 w-4 transition-transform ${catsOpen ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor">
+              <path d="M5.25 7.5L10 12.25L14.75 7.5H5.25Z" />
+            </svg>
           </button>
 
           {catsOpen && (
             <div
               ref={catsMenuRef}
-              className="absolute left-0 top-full z-30 mt-2 w-[720px] rounded-2xl border bg-white p-4 shadow-xl"
+              className="absolute left-0 top-full z-[60] mt-2 w-[720px] rounded-xl border bg-white p-4 shadow-2xl"
             >
               {cats.length === 0 ? (
                 <div className="p-3 text-sm text-gray-500">Sin categorías</div>
@@ -1082,7 +1051,7 @@ export default function NavBar() {
                     <Link
                       key={c.id}
                       to={`/c/${encodeURIComponent(String(c.nombre || "").toLowerCase())}`}
-                      className="rounded-xl px-3 py-2 text-sm hover:bg-gray-50"
+                      className="rounded-lg px-3 py-2 text-sm hover:bg-gray-50"
                       onClick={() => setCatsOpen(false)}
                     >
                       {c.nombre}
@@ -1094,11 +1063,14 @@ export default function NavBar() {
           )}
         </div>
 
-        {/* Search (desktop) con sugerencias */}
+        {/* Buscador (desktop) */}
         <div ref={searchRef} className="relative hidden flex-1 lg:flex">
           <form onSubmit={submitSearch} className="flex w-full items-center">
-            <div className="flex w-full items-center gap-2 rounded-2xl border px-3 py-2">
-              <span className="select-none text-sm opacity-70">🔎</span>
+            <div className="flex w-full items-center gap-2 rounded-xl border px-3 py-2">
+              <svg className="h-4 w-4 opacity-70" viewBox="0 0 20 20" fill="none">
+                <circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="2" />
+                <line x1="13.5" y1="13.5" x2="18" y2="18" stroke="currentColor" strokeWidth="2" />
+              </svg>
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -1109,7 +1081,7 @@ export default function NavBar() {
                 aria-label="Buscar"
                 aria-autocomplete="list"
               />
-              <button className="rounded-2xl border px-3 py-1.5 text-sm hover:shadow" type="submit">
+              <button className="rounded-lg border px-3 py-1.5 text-sm hover:shadow" type="submit">
                 Buscar
               </button>
             </div>
@@ -1118,7 +1090,7 @@ export default function NavBar() {
           {openSug && (
             <div
               ref={popRef}
-              className="absolute left-0 right-0 top-full mt-2 max-h-[70vh] overflow-auto rounded-2xl border bg-white shadow-2xl"
+              className="absolute left-0 right-0 top-full z-[70] mt-2 max-h-[70vh] overflow-auto rounded-xl border bg-white shadow-2xl"
               role="listbox"
             >
               <SugContent
@@ -1136,33 +1108,34 @@ export default function NavBar() {
 
         {/* Acciones (desktop) */}
         <div className="ml-auto hidden items-center gap-2 lg:flex">
-          <Link
-            to="/quiero-ser-socio"
-            className="rounded-2xl border px-3 py-2 text-sm hover:shadow"
-          >
+          <Link to="/quiero-ser-socio" className="rounded-lg border px-3 py-2 text-sm hover:shadow">
             Quiero ser socio
           </Link>
 
           {isLogged ? (
             <button
               onClick={goToProfile}
-              className="rounded-2xl border px-3 py-2 text-sm hover:shadow"
+              className="rounded-lg border px-3 py-2 text-sm hover:shadow"
               disabled={roleLoading}
             >
               {roleLoading ? "Cargando…" : "Mi perfil"}
             </button>
           ) : (
-            <Link to="/login" className="rounded-2xl border px-3 py-2 text-sm hover:shadow">
+            <Link to="/login" className="rounded-lg border px-3 py-2 text-sm hover:shadow">
               Login
             </Link>
           )}
 
           <Link
             to="/carrito"
-            className="relative inline-flex items-center gap-2 rounded-2xl border px-3 py-2"
+            className="relative inline-flex items-center gap-2 rounded-lg border px-3 py-2"
             aria-label="Ir al carrito"
           >
-            <span className="select-none">🛒</span>
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+              <path d="M6 6h15l-1.5 9h-12z" stroke="currentColor" strokeWidth="2" />
+              <circle cx="9" cy="20" r="1.5" fill="currentColor" />
+              <circle cx="18" cy="20" r="1.5" fill="currentColor" />
+            </svg>
             <span className="text-sm">Carrito</span>
             {count > 0 && (
               <span className="absolute -right-2 -top-2 rounded-full border bg-white px-1.5 text-xs font-semibold">
@@ -1175,20 +1148,26 @@ export default function NavBar() {
         {/* Toggle búsqueda (mobile) */}
         <button
           aria-label="Buscar"
-          className="ml-auto rounded-xl border px-2 py-1 hover:bg-gray-50 lg:hidden"
+          className="ml-auto rounded-lg border p-2 hover:bg-gray-50 lg:hidden"
           onClick={() => setMobileSearchOpen((v) => !v)}
         >
-          <span className="select-none text-sm">🔎</span>
+          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none">
+            <circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="2" />
+            <line x1="13.5" y1="13.5" x2="18" y2="18" stroke="currentColor" strokeWidth="2" />
+          </svg>
         </button>
       </div>
 
-      {/* Search + sugerencias (mobile) */}
+      {/* Buscador + sugerencias (mobile) */}
       {mobileSearchOpen && (
-        <div className="border-t bg-white lg:hidden">
+        <div className="z-[60] border-t bg-white lg:hidden">
           <div ref={searchRef} className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
             <form onSubmit={submitSearch} className="flex gap-2">
-              <div className="flex w-full items-center gap-2 rounded-2xl border px-3 py-2">
-                <span className="select-none text-sm opacity-70">🔎</span>
+              <div className="flex w-full items-center gap-2 rounded-lg border px-3 py-2">
+                <svg className="h-4 w-4 opacity-70" viewBox="0 0 20 20" fill="none">
+                  <circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="2" />
+                  <line x1="13.5" y1="13.5" x2="18" y2="18" stroke="currentColor" strokeWidth="2" />
+                </svg>
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
@@ -1198,7 +1177,7 @@ export default function NavBar() {
                   className="w-full bg-transparent text-sm outline-none"
                   aria-label="Buscar en móvil"
                 />
-                <button className="rounded-2xl border px-3 py-1.5 text-sm hover:shadow" type="submit">
+                <button className="rounded-lg border px-3 py-1.5 text-sm hover:shadow" type="submit">
                   Buscar
                 </button>
               </div>
@@ -1207,7 +1186,7 @@ export default function NavBar() {
             {openSug && (
               <div
                 ref={popRef}
-                className="mt-2 max-h-[60vh] overflow-auto rounded-2xl border bg-white shadow-2xl"
+                className="z-[70] mt-2 max-h-[60vh] overflow-auto rounded-lg border bg-white shadow-2xl"
                 role="listbox"
               >
                 <SugContent
@@ -1218,12 +1197,12 @@ export default function NavBar() {
                   setActiveIdx={setActiveIdx}
                   onPick={(to) => {
                     setOpenSug(false);
-                    closeAllMobile();
+                    closeAll();
                     navigate(to);
                   }}
                   onSeeAll={() => {
                     setOpenSug(false);
-                    closeAllMobile();
+                    closeAll();
                     submitSearch();
                   }}
                 />
@@ -1233,10 +1212,10 @@ export default function NavBar() {
         </div>
       )}
 
-      {/* Mobile off-canvas */}
+      {/* Off-canvas MOBILE */}
       <MobileMenu
         open={mobileOpen}
-        onClose={closeAllMobile}
+        onClose={closeAll}
         cats={cats}
         cartCount={count}
         isLogged={isLogged}
@@ -1248,19 +1227,11 @@ export default function NavBar() {
 
 /* ---------- SUGERENCIAS ---------- */
 function SugContent({ loading, prodSug, storeSug, activeIdx, setActiveIdx, onPick, onSeeAll }) {
-  if (loading) {
-    return <div className="p-4 text-sm text-gray-500">Buscando…</div>;
-  }
-
+  if (loading) return <div className="p-4 text-sm text-gray-500">Buscando…</div>;
   const total = (prodSug?.length || 0) + (storeSug?.length || 0);
   if (total === 0) {
-    return (
-      <div className="p-4 text-sm text-gray-500">
-        Sin sugerencias. Presioná Enter para ver todos los resultados.
-      </div>
-    );
+    return <div className="p-4 text-sm text-gray-500">Sin sugerencias. Enter para ver todos.</div>;
   }
-
   let idx = 0;
   return (
     <div>
@@ -1268,8 +1239,7 @@ function SugContent({ loading, prodSug, storeSug, activeIdx, setActiveIdx, onPic
         <div className="py-2">
           <div className="px-3 pb-1 text-xs uppercase text-gray-500">Productos</div>
           {prodSug.map((p) => {
-            const my = idx++;
-            const active = my === activeIdx;
+            const my = idx++; const active = my === activeIdx;
             const img = p.imagenes?.find((x) => x.is_primary)?.url || p.imagenes?.[0]?.url || null;
             return (
               <button
@@ -1277,54 +1247,38 @@ function SugContent({ loading, prodSug, storeSug, activeIdx, setActiveIdx, onPic
                 role="option"
                 aria-selected={active}
                 onMouseEnter={() => setActiveIdx(my)}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  onPick(`/producto/${p.id}`);
-                }}
-                className={`w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 md:flex ${
-                  active ? "bg-gray-50" : ""
-                }`}
+                onMouseDown={(e) => { e.preventDefault(); onPick(`/producto/${p.id}`); }}
+                className={`w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 md:flex ${active ? "bg-gray-50" : ""}`}
               >
                 <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-gray-100">
                   {img ? <img src={img} alt="" className="h-full w-full object-cover" /> : null}
                 </div>
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium">{p.nombre}</div>
-                  <div className="truncate text-xs text-gray-500">
-                    {p.seller_nombre || "Producto"}
-                  </div>
+                  <div className="truncate text-xs text-gray-500">{p.seller_nombre || "Producto"}</div>
                 </div>
               </button>
             );
           })}
         </div>
       )}
-
       {storeSug?.length > 0 && (
         <div className="border-t py-2">
           <div className="px-3 pb-1 text-xs uppercase text-gray-500">Tiendas</div>
           {storeSug.map((s) => {
-            const my = idx++;
-            const active = my === activeIdx;
+            const my = idx++; const active = my === activeIdx;
             return (
               <button
                 key={`s-${s.id}`}
                 role="option"
                 aria-selected={active}
                 onMouseEnter={() => setActiveIdx(my)}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  onPick(`/vendedor/${s.id}`);
-                }}
-                className={`w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 md:flex ${
-                  active ? "bg-gray-50" : ""
-                }`}
+                onMouseDown={(e) => { e.preventDefault(); onPick(`/vendedor/${s.id}`); }}
+                className={`w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 md:flex ${active ? "bg-gray-50" : ""}`}
               >
                 <div className="h-10 w-10 shrink-0 rounded-md bg-gray-100" />
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">
-                    {s.nombre_fantasia || s.name || "Tienda"}
-                  </div>
+                  <div className="truncate text-sm font-medium">{s.nombre_fantasia || s.name || "Tienda"}</div>
                   <div className="truncate text-xs text-gray-500">Ver tienda</div>
                 </div>
               </button>
@@ -1332,13 +1286,9 @@ function SugContent({ loading, prodSug, storeSug, activeIdx, setActiveIdx, onPic
           })}
         </div>
       )}
-
       <div className="border-t">
         <button
-          onMouseDown={(e) => {
-            e.preventDefault();
-            onSeeAll();
-          }}
+          onMouseDown={(e) => { e.preventDefault(); onSeeAll(); }}
           className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
         >
           Ver todos los resultados
@@ -1348,38 +1298,34 @@ function SugContent({ loading, prodSug, storeSug, activeIdx, setActiveIdx, onPic
   );
 }
 
-/* ---------- MOBILE MENU ---------- */
+/* ---------- MENÚ MOBILE ---------- */
 function MobileMenu({ open, onClose, cats, cartCount, isLogged, onGoProfile }) {
   return (
-    <div className={`fixed inset-0 z-50 lg:hidden ${open ? "" : "pointer-events-none"}`} aria-hidden={!open}>
+    <div className={`fixed inset-0 z-[80] lg:hidden ${open ? "" : "pointer-events-none"}`} aria-hidden={!open}>
       <div
-        className={`absolute inset-0 bg-black/30 transition-opacity ${open ? "opacity-100" : "opacity-0"}`}
+        className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity ${open ? "opacity-100" : "opacity-0"}`}
         onClick={onClose}
       />
       <aside
-        className={`absolute left-0 top-0 h-full w-80 max-w-[85%] transform bg-white shadow-xl transition-transform ${
-          open ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`absolute left-0 top-0 h-full w-80 max-w-[85%] transform bg-white shadow-2xl transition-transform ${open ? "translate-x-0" : "-translate-x-full"}`}
         role="dialog"
         aria-label="Menú de navegación"
       >
         <div className="flex items-center justify-between border-b p-4">
           <span className="font-semibold">Menú</span>
-          <button
-            aria-label="Cerrar menú"
-            onClick={onClose}
-            className="rounded-md border px-2 py-1 hover:bg-gray-50"
-          >
-            ✕
+          <button aria-label="Cerrar menú" onClick={onClose} className="rounded-md border px-2 py-1 hover:bg-gray-50">
+            Cerrar
           </button>
         </div>
 
-        <nav className="h-[calc(100%-56px)] space-y-4 overflow-y-auto p-4">
+        <nav className="h-[calc(100%-48px)] space-y-4 overflow-y-auto p-4">
           <div className="flex items-center justify-between">
             <Link to="/carrito" onClick={onClose} className="rounded-md border px-3 py-2 hover:bg-gray-50">
               Carrito
               {cartCount > 0 && (
-                <span className="ml-2 rounded-full bg-black px-1.5 text-xs text-white">{cartCount}</span>
+                <span className="ml-2 rounded-full bg-black px-1.5 text-xs text-white">
+                  {cartCount}
+                </span>
               )}
             </Link>
 

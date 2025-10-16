@@ -273,17 +273,13 @@
 // src/pages/Home.jsx
 import { useEffect, useMemo, useState } from "react";
 import axiosPublic from "../api/axiosPublic";
-import ProductCard from "../components/PorductCard"; // 👈 respetamos tu card
+import ProductCard from "../components/PorductCard";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/autoplay";
 
-/* ----------------------------------
-   HERO SOLO IMAGEN (admin)
-   - Usa únicamente las imágenes que sube el admin en banner_principal
-   - Sin textos ni CTA
------------------------------------*/
+/* HERO: solo imágenes subidas por el admin (banner_principal) */
 function HeroOnlyImages({ items = [] }) {
   if (!Array.isArray(items) || items.length === 0) return null;
 
@@ -291,7 +287,7 @@ function HeroOnlyImages({ items = [] }) {
     () =>
       items.map((b, i) => ({
         id: b.id || i,
-        src: b.imagen_url || b.url || b, // admitimos string directo por compatibilidad
+        src: b.imagen_url || b.url || b, // admite string
         alt: b.alt || `Banner ${i + 1}`,
         link: b.link || null,
       })),
@@ -300,7 +296,6 @@ function HeroOnlyImages({ items = [] }) {
 
   return (
     <section className="relative mt-6 overflow-hidden rounded-3xl border bg-white">
-      {/* Ratio flexible: alto mayor en desktop, sin texto arriba */}
       <div className="relative w-full">
         <div className="w-full h-[220px] sm:h-[260px] md:h-[360px] lg:h-[420px]">
           <Swiper
@@ -312,19 +307,15 @@ function HeroOnlyImages({ items = [] }) {
           >
             {slides.map((s, i) => {
               const content = (
-                <picture>
-                  <source srcSet={s.src} type="image/webp" />
-                  <img
-                    src={s.src}
-                    alt={s.alt}
-                    className="h-full w-full object-cover"
-                    loading={i === 0 ? "eager" : "lazy"}
-                    decoding="async"
-                    sizes="(min-width:1024px) 1200px, 100vw"
-                  />
-                </picture>
+                <img
+                  src={s.src}
+                  alt={s.alt}
+                  className="h-full w-full object-cover"
+                  loading={i === 0 ? "eager" : "lazy"}
+                  decoding="async"
+                  sizes="(min-width:1024px) 1200px, 100vw"
+                />
               );
-
               return (
                 <SwiperSlide key={s.id}>
                   {s.link ? (
@@ -344,10 +335,7 @@ function HeroOnlyImages({ items = [] }) {
   );
 }
 
-/* ----------------------------------
-   BLOQUE DE BANNER (intermedio)
-   - Misma dinámica que ya usabas
------------------------------------*/
+/* BANNER INTERMEDIO (admin) */
 function BannerBlock({ items = [], className = "" }) {
   if (!Array.isArray(items) || items.length === 0) return null;
   const multi = items.length > 1;
@@ -365,20 +353,17 @@ function BannerBlock({ items = [], className = "" }) {
           {items.map((b, i) => {
             const url = b.imagen_url || b.url || b;
             const link = b.link || null;
-            const title = b.titulo || b.alt || `Banner ${i + 1}`;
+            const title = b.alt || `Banner ${i + 1}`;
 
             const content = (
-              <picture>
-                <source srcSet={url} type="image/webp" />
-                <img
-                  src={url}
-                  alt={title}
-                  className="h-full w-full object-cover"
-                  loading={i === 0 ? "eager" : "lazy"}
-                  decoding="async"
-                  sizes="(min-width:1024px) 1200px, 100vw"
-                />
-              </picture>
+              <img
+                src={url}
+                alt={title}
+                className="h-full w-full object-cover"
+                loading={i === 0 ? "eager" : "lazy"}
+                decoding="async"
+                sizes="(min-width:1024px) 1200px, 100vw"
+              />
             );
 
             return (
@@ -399,25 +384,16 @@ function BannerBlock({ items = [], className = "" }) {
   );
 }
 
-/* ----------------------------------
-   Título de sección (estético)
------------------------------------*/
+/* HOME */
 function SectionTitle({ children, rightLink }) {
   return (
     <div className="mb-4 flex items-center justify-between">
       <h2 className="text-xl md:text-2xl font-bold">{children}</h2>
-      {rightLink ? (
-        <a href={rightLink} className="text-sm font-medium underline">
-          Ver todo
-        </a>
-      ) : null}
+      {rightLink ? <a href={rightLink} className="text-sm font-medium underline">Ver todo</a> : null}
     </div>
   );
 }
 
-/* ----------------------------------
-   HOME (mismos endpoints/datos)
------------------------------------*/
 export default function Home() {
   const [data, setData] = useState(null);
 
@@ -432,7 +408,7 @@ export default function Home() {
 
   return (
     <div className="mx-auto max-w-7xl">
-      {/* HERO: solo imágenes desde admin */}
+      {/* HERO: banners del admin */}
       <div className="px-4 sm:px-6 lg:px-8">
         <HeroOnlyImages items={data.banner_principal || []} />
       </div>
@@ -452,7 +428,7 @@ export default function Home() {
         <BannerBlock items={data.banner_intermedio || []} />
       </div>
 
-      {/* OTRAS TIENDAS (medio/básico) */}
+      {/* OTRAS TIENDAS */}
       <section className="px-4 sm:px-6 lg:px-8 mt-10 mb-12">
         <SectionTitle rightLink="/tienda">Otras tiendas</SectionTitle>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
