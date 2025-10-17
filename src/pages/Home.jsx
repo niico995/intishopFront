@@ -274,169 +274,248 @@
 import { useEffect, useMemo, useState } from "react";
 import axiosPublic from "../api/axiosPublic";
 import ProductCard from "../components/PorductCard";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay } from "swiper/modules";
-import "swiper/css";
-import "swiper/css/autoplay";
+import { Link } from "react-router-dom";
 
-/* HERO: solo imágenes subidas por el admin (banner_principal) */
-function HeroOnlyImages({ items = [] }) {
-  if (!Array.isArray(items) || items.length === 0) return null;
+/* ============ Utilidades pequeñas ============ */
+const pickImg = (x) =>
+  x?.imagen_url || x?.url || (typeof x === "string" ? x : null);
 
-  const slides = useMemo(
-    () =>
-      items.map((b, i) => ({
-        id: b.id || i,
-        src: b.imagen_url || b.url || b, // admite string
-        alt: b.alt || `Banner ${i + 1}`,
-        link: b.link || null,
-      })),
-    [items]
-  );
+const slug = (s) =>
+  String(s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
+/* ============ HERO con imagen del admin + overlay + título/CTA ============ */
+function PageHero({ image, title, ctaText = "Nuestros productos", ctaHref = "/tienda" }) {
   return (
-    <section className="relative mt-6 overflow-hidden rounded-3xl border bg-white">
-      <div className="relative w-full">
-        <div className="w-full h-[220px] sm:h-[260px] md:h-[360px] lg:h-[420px]">
-          <Swiper
-            modules={[Autoplay]}
-            slidesPerView={1}
-            spaceBetween={10}
-            autoplay={slides.length > 1 ? { delay: 3500, disableOnInteraction: false } : false}
-            className="w-full h-full"
-          >
-            {slides.map((s, i) => {
-              const content = (
-                <img
-                  src={s.src}
-                  alt={s.alt}
-                  className="h-full w-full object-cover"
-                  loading={i === 0 ? "eager" : "lazy"}
-                  decoding="async"
-                  sizes="(min-width:1024px) 1200px, 100vw"
-                />
-              );
-              return (
-                <SwiperSlide key={s.id}>
-                  {s.link ? (
-                    <a href={s.link} target="_blank" rel="noopener noreferrer" aria-label={s.alt}>
-                      {content}
-                    </a>
-                  ) : (
-                    content
-                  )}
-                </SwiperSlide>
-              );
-            })}
-          </Swiper>
+    <section className="relative h-[320px] sm:h-[420px] lg:h-[520px] w-full overflow-hidden">
+      {image ? (
+        <img
+          src={image}
+          alt={title}
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="eager"
+          decoding="async"
+          sizes="100vw"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gray-200" />
+      )}
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-black/55" />
+      {/* Texto centrado */}
+      <div className="relative z-10 mx-auto flex h-full max-w-7xl items-center px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl">
+          <h1 className="text-3xl font-extrabold leading-tight text-white sm:text-5xl">
+            Todo lo que necesitás, en un solo lugar.
+          </h1>
+          <div className="mt-6">
+            <Link
+              to={ctaHref}
+              className="inline-block rounded-md bg-white/90 px-5 py-2.5 text-sm font-semibold text-gray-900 hover:bg-white"
+            >
+              {ctaText}
+            </Link>
+          </div>
         </div>
       </div>
     </section>
   );
 }
 
-/* BANNER INTERMEDIO (admin) */
-function BannerBlock({ items = [], className = "" }) {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const multi = items.length > 1;
-
+/* ============ Badges (cuotas / débito / efectivo) ============ */
+function TrustBadges() {
+  const item = (icon, text) => (
+    <div className="flex items-center gap-3 rounded-xl bg-white/90 px-4 py-3 shadow-sm ring-1 ring-black/5">
+      <span className="text-xl">{icon}</span>
+      <span className="text-sm font-medium">{text}</span>
+    </div>
+  );
   return (
-    <div className={`w-full ${className}`}>
-      <div className="w-full aspect-[3/1] bg-gray-100 rounded-3xl border overflow-hidden">
-        <Swiper
-          modules={[Autoplay]}
-          slidesPerView={1}
-          spaceBetween={10}
-          autoplay={multi ? { delay: 3500, disableOnInteraction: false } : false}
-          className="w-full h-full"
-        >
-          {items.map((b, i) => {
-            const url = b.imagen_url || b.url || b;
-            const link = b.link || null;
-            const title = b.alt || `Banner ${i + 1}`;
-
-            const content = (
-              <img
-                src={url}
-                alt={title}
-                className="h-full w-full object-cover"
-                loading={i === 0 ? "eager" : "lazy"}
-                decoding="async"
-                sizes="(min-width:1024px) 1200px, 100vw"
-              />
-            );
-
-            return (
-              <SwiperSlide key={b.id || i}>
-                {link ? (
-                  <a href={link} target="_blank" rel="noopener noreferrer" aria-label={title}>
-                    {content}
-                  </a>
-                ) : (
-                  content
-                )}
-              </SwiperSlide>
-            );
-          })}
-        </Swiper>
+    <div className="mx-auto -mt-6 max-w-6xl px-4 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {item("💳", "Pagá en cuotas")}
+        {item("🏧", "Tarjeta de débito")}
+        {item("💵", "Efectivo")}
       </div>
     </div>
   );
 }
 
-/* HOME */
-function SectionTitle({ children, rightLink }) {
+/* ============ Mosaico de categorías (usa imágenes del admin) ============ */
+/* Usamos 3 imágenes (si el admin subió menos, reusamos la primera).
+   Los títulos y destinos son fijos (sin subcategorías nuevas). */
+function CategoryMosaic({ images = [], categories = [] }) {
+  // Títulos/destinos “como la referencia”
+  const targets = useMemo(() => {
+    const prefer = ["Herramientas", "Celulares", "Electrodomésticos"];
+    // Buscamos esos nombres en tus categorías; si no, caemos al propio título.
+    const toPath = (name) =>
+      `/c/${slug(
+        categories.find((c) => String(c.nombre).toLowerCase() === name.toLowerCase())
+          ?.nombre || name
+      )}`;
+    return [
+      { title: "Herramientas", href: toPath("Herramientas") },
+      { title: "Celulares", href: toPath("Celulares") },
+      { title: "Electrodomésticos", href: toPath("Electrodomésticos") },
+    ];
+  }, [categories]);
+
+  const img0 = pickImg(images[0]) || pickImg(images[1]) || pickImg(images[2]) || null;
+  const img1 = pickImg(images[1]) || img0;
+  const img2 = pickImg(images[2]) || img0;
+
+  const Tile = ({ src, title, href, className = "" }) => (
+    <Link
+      to={href}
+      className={`group relative overflow-hidden rounded-2xl ring-1 ring-black/10 ${className}`}
+    >
+      {src ? (
+        <img src={src} alt={title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+      ) : (
+        <div className="h-full w-full bg-gray-200" />
+      )}
+      <div className="absolute inset-0 bg-black/35" />
+      <div className="absolute inset-0 flex items-end">
+        <div className="p-6">
+          <div className="text-2xl font-extrabold text-white drop-shadow">{title}</div>
+        </div>
+      </div>
+    </Link>
+  );
+
   return (
-    <div className="mb-4 flex items-center justify-between">
-      <h2 className="text-xl md:text-2xl font-bold">{children}</h2>
-      {rightLink ? <a href={rightLink} className="text-sm font-medium underline">Ver todo</a> : null}
+    <div className="mx-auto mt-6 max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Tile src={img0} title={targets[0].title} href={targets[0].href} className="h-[320px]" />
+        <div className="grid grid-rows-2 gap-4">
+          <Tile src={img1} title={targets[1].title} href={targets[1].href} className="h-[150px] md:h-[158px]" />
+          <Tile src={img2} title={targets[2].title} href={targets[2].href} className="h-[150px] md:h-[158px]" />
+        </div>
+      </div>
     </div>
   );
 }
 
+/* ============ Fila de “beneficios” inferior ============ */
+function ServiceRow() {
+  const Box = ({ icon, title, text }) => (
+    <div className="rounded-xl bg-white p-6 text-center shadow-sm ring-1 ring-black/5">
+      <div className="text-2xl">{icon}</div>
+      <div className="mt-3 text-sm font-semibold">{title}</div>
+      <div className="mt-2 text-xs text-gray-600">{text}</div>
+    </div>
+  );
+  return (
+    <div className="mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <Box
+          icon="🚚"
+          title="Envíos en toda Argentina"
+          text="Recibí tu compra en cualquier lugar del país."
+        />
+        <Box
+          icon="🛡️"
+          title="Pagos 100% seguros"
+          text="Transacciones protegidas para tu tranquilidad."
+        />
+        <Box
+          icon="🔥"
+          title="Ofertas irresistibles"
+          text="Promos y precios especiales todas las semanas."
+        />
+        <Box
+          icon="📦"
+          title="Compra confiable"
+          text="Productos seleccionados de vendedores verificados."
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ============ HOME (todo dinámico con tus endpoints) ============ */
 export default function Home() {
   const [data, setData] = useState(null);
+  const [cats, setCats] = useState([]);
 
   useEffect(() => {
     axiosPublic
       .get("products/home/destacados/")
       .then((r) => setData(r.data))
       .catch(() => setData(null));
+
+    axiosPublic
+      .get("products/categorias/")
+      .then((r) => setCats(r.data || []))
+      .catch(() => setCats([]));
   }, []);
 
   if (!data) return <div className="mx-auto max-w-7xl p-4">Cargando…</div>;
 
+  const heroImg = pickImg((data.banner_principal || [])[0]);
+  const tilesImgs = data.banner_intermedio || data.banner_principal || [];
+
   return (
-    <div className="mx-auto max-w-7xl">
-      {/* HERO: banners del admin */}
-      <div className="px-4 sm:px-6 lg:px-8">
-        <HeroOnlyImages items={data.banner_principal || []} />
-      </div>
+    <div className="w-full">
+      {/* 1) HERO como la referencia: imagen admin + overlay + CTA */}
+      <PageHero image={heroImg} title="Todo lo que necesitás" />
 
-      {/* DESTACADOS PRO */}
-      <section className="px-4 sm:px-6 lg:px-8 mt-10">
-        <SectionTitle rightLink="/tienda">Destacados PRO</SectionTitle>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {data.productos_pro?.map((p) => (
+      {/* 2) Badges/medios de pago */}
+      <TrustBadges />
+
+      {/* 3) Mosaico de categorías (sin subcategorías, con imágenes del admin) */}
+      <CategoryMosaic images={tilesImgs} categories={cats} />
+
+      {/* 4) Lista de “Nuestros productos más vendidos” -> socios TOP (productos_pro) */}
+      <section className="mx-auto mt-12 max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-6 text-center">
+          <h2 className="text-2xl font-bold">Nuestros productos más vendidos</h2>
+          <div className="mx-auto mt-2 h-1 w-16 rounded-full bg-gray-900/80" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          {(data.productos_pro || []).map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
         </div>
       </section>
 
-      {/* BANNER INTERMEDIO (admin) */}
-      <div className="px-4 sm:px-6 lg:px-8 mt-10">
-        <BannerBlock items={data.banner_intermedio || []} />
-      </div>
-
-      {/* OTRAS TIENDAS */}
-      <section className="px-4 sm:px-6 lg:px-8 mt-10 mb-12">
-        <SectionTitle rightLink="/tienda">Otras tiendas</SectionTitle>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {data.productos_medios_o_basicos?.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
+      {/* 5) Banner intermedio (si el admin quiere otro bloque gráfico) */}
+      {tilesImgs?.length > 0 && (
+        <div className="mx-auto mt-12 max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="overflow-hidden rounded-2xl ring-1 ring-black/10">
+            <img
+              src={pickImg(tilesImgs[0])}
+              alt="Banner"
+              className="h-[180px] w-full object-cover sm:h-[220px]"
+              loading="lazy"
+            />
+          </div>
         </div>
-      </section>
+      )}
+
+      {/* 6) Otra grilla (si querés mostrar más productos) — dejamos tu bloque de básicos/medios */}
+      {Array.isArray(data.productos_medios_o_basicos) &&
+        data.productos_medios_o_basicos.length > 0 && (
+          <section className="mx-auto mt-12 max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-6 text-center">
+              <h2 className="text-2xl font-bold">Más productos</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+              {data.productos_medios_o_basicos.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </section>
+        )}
+
+      {/* 7) Fila de beneficios (como las cards de abajo en la referencia) */}
+      <ServiceRow />
     </div>
   );
 }
